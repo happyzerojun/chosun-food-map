@@ -1,24 +1,17 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { CustomOverlayMap, Map, MapMarker, useKakaoLoader } from 'react-kakao-maps-sdk'
 import restaurantsData from './data/restaurants.json'
+import { config } from './config'
 
-function App() {
+function KakaoMapView() {
   const [loading, error] = useKakaoLoader({
-    appkey: import.meta.env.VITE_KAKAO_API_KEY,
+    appkey: config.kakaoApiKey,
     libraries: ['services'],
   })
 
   const center = useMemo(() => ({ lat: 35.1462, lng: 126.9318 }), [])
   const restaurants = restaurantsData
   const [selectedId, setSelectedId] = useState(() => restaurantsData[0]?.id ?? null)
-
-  useEffect(() => {
-    // 점검용 로그: .env 값이 App까지 들어오는지 확인
-    console.log('[ENV] VITE_KAKAO_API_KEY:', import.meta.env.VITE_KAKAO_API_KEY)
-    if (!import.meta.env.VITE_KAKAO_API_KEY) {
-      console.error('[ENV] VITE_KAKAO_API_KEY가 비어있습니다. .env 설정 후 dev 서버를 재시작하세요.')
-    }
-  }, [])
 
   const selected = useMemo(
     () => restaurants.find((r) => r.id === selectedId) ?? null,
@@ -31,7 +24,7 @@ function App() {
         <div className="max-w-md rounded-2xl border border-red-200 bg-white p-6 shadow-xl">
           <div className="text-sm font-semibold text-red-600">지도 로딩 실패</div>
           <div className="mt-2 text-sm text-slate-700">
-            카카오 키가 올바른지 확인하세요. 콘솔에 에러가 함께 찍힙니다.
+            카카오 키가 올바른지 확인하세요. (Vercel 환경변수 포함)
           </div>
         </div>
       </div>
@@ -42,11 +35,7 @@ function App() {
     <div className="relative h-screen w-screen">
       <Map center={center} level={3} style={{ width: '100%', height: '100%' }}>
         {restaurants.map((r) => (
-          <MapMarker
-            key={r.id}
-            position={r.position}
-            onClick={() => setSelectedId(r.id)}
-          />
+          <MapMarker key={r.id} position={r.position} onClick={() => setSelectedId(r.id)} />
         ))}
 
         {selected ? (
@@ -105,12 +94,29 @@ function App() {
 
       <div className="pointer-events-none absolute left-4 top-4 rounded-2xl border border-black/10 bg-white/90 px-4 py-3 shadow-lg backdrop-blur">
         <div className="text-sm font-semibold text-slate-900">조선대 맛집 지도</div>
-        <div className="mt-0.5 text-xs text-slate-600">
-          마커를 클릭하면 식당 정보가 보여요
-        </div>
+        <div className="mt-0.5 text-xs text-slate-600">마커를 클릭하면 식당 정보가 보여요</div>
       </div>
     </div>
   )
+}
+
+function App() {
+  if (!config.kakaoApiKey) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-slate-50 p-6">
+        <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 text-center shadow-xl">
+          <div className="text-base font-semibold text-slate-900">API 키 설정 필요</div>
+          <div className="mt-2 text-sm text-slate-600">
+            카카오 지도 API 키가 설정되어 있지 않습니다.
+            <br />
+            Vercel 환경변수에 <span className="font-mono">VITE_KAKAO_API_KEY</span>를 추가해주세요.
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  return <KakaoMapView />
 }
 
 export default App
