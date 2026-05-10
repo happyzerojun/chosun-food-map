@@ -181,4 +181,30 @@
     right: 0;
     border-right-color: var(--border);
   }
+
+  /* --- 잡다한개발자: 맛집 지도 커스텀 스타일 --- */
+
+  /* 1. 지도 위 가격 태그 (CustomOverlay) */
+  .price-tag {
+    @apply px-2 py-1 bg-white border border-[#FFDD00] rounded-xl text-[12px] font-bold shadow-md text-slate-800;
+    pointer-events: none; /* 클릭 방해 금지 */
+  }
+
+  /* 2. 상세 정보창 컨테이너 */
+  .info-window {
+    @apply w-[280px] overflow-hidden rounded-2xl border border-black/10 bg-white shadow-2xl;
+  }
+
+  /* 3. 상세 설명(Note) 가독성 핵심 설정 */
+  .info-note {
+    @apply mt-2 whitespace-pre-wrap text-[13px] leading-relaxed text-slate-600;
+    /* 단어 단위 줄바꿈으로 가독성 극대화 */
+    word-break: keep-all;
+    overflow-wrap: break-word;
+  }
+
+  /* 4. 태그 칩(Chip) 스타일 */
+  .tag-chip {
+    @apply rounded-md border border-slate-200 bg-slate-50 px-2 py-0.5 text-[11px] font-semibold text-slate-600;
+  }
 }

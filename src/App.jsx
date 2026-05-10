@@ -36,6 +36,20 @@ function KakaoMapView() {
     [restaurants, selectedId],
   )
 
+  // [핵심 로직] 원본 좌표는 유지하되, 겹치는 마커들을 시각적으로만 분산시키는 함수
+  const getVisualOffset = (id) => {
+    switch (id) {
+      case 'tongkeun-donkatsu':
+        return 'translate-x-8 -translate-y-4' // 우측 상단으로 이동
+      case 'jodea-buger':
+        return '-translate-x-6 translate-y-4' // 좌측 하단으로 이동
+      case 'mujinjang-tteokbokki':
+        return '-translate-x-2 -translate-y-6' // 좌측 상단으로 이동
+      default:
+        return '' // 겹치지 않는 곳은 이동 없음
+    }
+  }
+
   if (error)
     return (
       <div className="flex h-screen items-center justify-center p-6 text-center">
@@ -55,7 +69,7 @@ function KakaoMapView() {
         {restaurants.map((r) => (
           <CustomOverlayMap
             key={r.id}
-            position={r.position}
+            position={r.position} // 원본 좌표는 절대 수정하지 않음
             xAnchor={0.5}
             yAnchor={1}
             zIndex={selectedId === r.id ? 20 : 12}
@@ -64,7 +78,8 @@ function KakaoMapView() {
             <button
               type="button"
               onClick={() => setSelectedId(r.id)}
-              className="flex cursor-pointer flex-col items-center border-0 bg-transparent p-0 outline-none hover:scale-105 transition-transform"
+              // 오프셋 함수를 클래스에 적용하여 렌더링 위치만 분산시킴
+              className={`flex cursor-pointer flex-col items-center border-0 bg-transparent p-0 outline-none hover:scale-105 transition-transform ${getVisualOffset(r.id)}`}
               aria-label={`${r.name} ${r.representative_price} 상세 보기`}
             >
               <div className="rounded-xl border border-neutral-900/20 bg-white px-3 py-2 shadow-[0_4px_14px_rgba(0,0,0,0.16)]">
@@ -95,9 +110,15 @@ function KakaoMapView() {
         ))}
 
         {selected ? (
-          <CustomOverlayMap position={selected.position} yAnchor={1.12} zIndex={40}>
-            {/* 넓이를 280px로 살짝 넓히고 가독성 속성(break-keep)을 추가했습니다. */}
-            <div className="w-[280px] overflow-hidden rounded-2xl border border-black/10 bg-white shadow-2xl">
+          <CustomOverlayMap
+            position={selected.position}
+            yAnchor={1.12}
+            zIndex={40}
+          >
+            <div
+              // 선택된 마커의 오프셋에 맞춰 상세창도 자연스럽게 따라가도록 클래스 적용
+              className={`w-[280px] overflow-hidden rounded-2xl border border-black/10 bg-white shadow-2xl ${getVisualOffset(selected.id)}`}
+            >
               <div className="flex items-start gap-2 px-4 py-4">
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
@@ -112,7 +133,6 @@ function KakaoMapView() {
                   <div className="mt-0.5 text-sm font-bold text-violet-700">
                     {selected.representative_price}
                   </div>
-                  {/* 한글 단어 단위 줄바꿈(break-keep) 적용으로 문장 깨짐 방지 */}
                   <div className="mt-2.5 whitespace-pre-wrap break-keep text-[13px] leading-relaxed text-slate-600">
                     {selected.note}
                   </div>
@@ -153,7 +173,6 @@ function KakaoMapView() {
         ) : null}
       </Map>
 
-      {/* 좌측 상단 안내 박스 Z-index 상향 조정 */}
       <div className="pointer-events-none absolute left-4 top-4 z-[1000] rounded-2xl border border-black/10 bg-white/95 px-4 py-3 shadow-lg backdrop-blur">
         <div className="text-sm font-bold text-slate-900">조대 후문 가성비 맛집 지도</div>
         <div className="mt-0.5 text-[11px] font-medium text-slate-500">
