@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { CustomOverlayMap, Map, MapMarker, useKakaoLoader } from 'react-kakao-maps-sdk'
+import { CustomOverlayMap, Map, useKakaoLoader } from 'react-kakao-maps-sdk'
 import restaurantsData from './data/restaurants.json'
 import { config } from './config.js'
 
@@ -53,11 +53,49 @@ function KakaoMapView() {
     <div className="relative h-screen w-screen">
       <Map center={center} level={3} style={{ width: '100%', height: '100%' }}>
         {restaurants.map((r) => (
-          <MapMarker key={r.id} position={r.position} onClick={() => setSelectedId(r.id)} />
+          <CustomOverlayMap
+            key={r.id}
+            position={r.position}
+            xAnchor={0.5}
+            yAnchor={1}
+            zIndex={selectedId === r.id ? 20 : 12}
+            clickable
+          >
+            <button
+              type="button"
+              onClick={() => setSelectedId(r.id)}
+              className="flex cursor-pointer flex-col items-center border-0 bg-transparent p-0 outline-none"
+              aria-label={`${r.name} ${r.representative_price} 상세 보기`}
+            >
+              <div className="rounded-xl border border-neutral-900/20 bg-white px-3 py-2 shadow-[0_4px_14px_rgba(0,0,0,0.16)]">
+                <span className="block whitespace-nowrap text-[12px] font-semibold text-neutral-900">
+                  {r.representative_price}
+                </span>
+                <span className="mt-0.5 block max-w-[132px] truncate text-center text-[10px] font-medium text-neutral-500">
+                  {r.name}
+                </span>
+              </div>
+              <div className="relative -mt-px flex flex-col items-center pointer-events-none">
+                <svg width="20" height="9" viewBox="0 0 20 9" aria-hidden="true">
+                  <path
+                    d="M10 9 L1 1 H19 Z"
+                    fill="#ffffff"
+                    stroke="rgba(0,0,0,0.18)"
+                    strokeWidth="1"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+                <span
+                  className="-mt-1 h-2.5 w-2.5 shrink-0 rounded-full border border-neutral-900/25 bg-white shadow-sm"
+                  aria-hidden="true"
+                />
+              </div>
+            </button>
+          </CustomOverlayMap>
         ))}
 
         {selected ? (
-          <CustomOverlayMap position={selected.position} yAnchor={1.12}>
+          <CustomOverlayMap position={selected.position} yAnchor={1.12} zIndex={40}>
             <div className="w-[260px] overflow-hidden rounded-2xl border border-black/10 bg-white shadow-xl">
               <div className="flex items-start gap-2 px-4 py-3">
                 <div className="min-w-0 flex-1">
@@ -69,6 +107,9 @@ function KakaoMapView() {
                   </div>
                   <div className="mt-1 truncate text-base font-semibold text-slate-900">
                     {selected.name}
+                  </div>
+                  <div className="mt-1 text-sm font-semibold text-violet-700">
+                    {selected.representative_price}
                   </div>
                   <div className="mt-1 whitespace-pre-wrap text-sm leading-relaxed text-slate-700">
                     {selected.note}
@@ -111,8 +152,10 @@ function KakaoMapView() {
       </Map>
 
       <div className="pointer-events-none absolute left-4 top-4 rounded-2xl border border-black/10 bg-white/90 px-4 py-3 shadow-lg backdrop-blur">
-        <div className="text-sm font-semibold text-slate-900">조선대 맛집 지도</div>
-        <div className="mt-0.5 text-xs text-slate-600">마커를 클릭하면 식당 정보가 보여요</div>
+        <div className="text-sm font-semibold text-slate-900">조대 후문 가성비 맛집 지도</div>
+        <div className="mt-0.5 text-xs text-slate-600">
+          가격은 지도 위 말풍선으로 항상 보여요. 누르면 상세 정보가 열려요.
+        </div>
       </div>
     </div>
   )
