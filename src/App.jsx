@@ -3,14 +3,13 @@ import { CustomOverlayMap, Map, useKakaoLoader } from 'react-kakao-maps-sdk'
 import restaurantsData from './data/restaurants.json'
 import { config } from './config.js'
 
-// 후원 페이지 URL — Toss / Buy Me a Coffee 등으로 교체하세요.
+// 후원 페이지 URL
 const COFFEE_DONATION_URL = 'https://ctee.kr/place/chosun_dev'
 
 function CoffeeDonateButton() {
   return (
     <a
       href={COFFEE_DONATION_URL}
-      // TODO: 위 COFFEE_DONATION_URL을 실제 후원 링크로 변경하세요. (# 이면 동일 탭으로 이동만 함)
       target="_blank"
       rel="noopener noreferrer"
       className="fixed bottom-6 right-6 z-[10050] rounded-full px-4 py-3 text-sm font-semibold text-slate-900 shadow-[0_8px_24px_rgba(0,0,0,0.18)] transition hover:brightness-[0.97] active:scale-[0.98]"
@@ -27,7 +26,8 @@ function KakaoMapView() {
     libraries: ['services'],
   })
 
-  const center = useMemo(() => ({ lat: 35.1462, lng: 126.9318 }), [])
+  // 후원 버튼 및 UI와의 밸런스를 고려해 초기 중심 좌표를 살짝 보정했습니다.
+  const center = useMemo(() => ({ lat: 35.1448, lng: 126.9305 }), [])
   const restaurants = restaurantsData
   const [selectedId, setSelectedId] = useState(() => restaurantsData[0]?.id ?? null)
 
@@ -64,7 +64,7 @@ function KakaoMapView() {
             <button
               type="button"
               onClick={() => setSelectedId(r.id)}
-              className="flex cursor-pointer flex-col items-center border-0 bg-transparent p-0 outline-none"
+              className="flex cursor-pointer flex-col items-center border-0 bg-transparent p-0 outline-none hover:scale-105 transition-transform"
               aria-label={`${r.name} ${r.representative_price} 상세 보기`}
             >
               <div className="rounded-xl border border-neutral-900/20 bg-white px-3 py-2 shadow-[0_4px_14px_rgba(0,0,0,0.16)]">
@@ -96,29 +96,31 @@ function KakaoMapView() {
 
         {selected ? (
           <CustomOverlayMap position={selected.position} yAnchor={1.12} zIndex={40}>
-            <div className="w-[260px] overflow-hidden rounded-2xl border border-black/10 bg-white shadow-xl">
-              <div className="flex items-start gap-2 px-4 py-3">
+            {/* 넓이를 280px로 살짝 넓히고 가독성 속성(break-keep)을 추가했습니다. */}
+            <div className="w-[280px] overflow-hidden rounded-2xl border border-black/10 bg-white shadow-2xl">
+              <div className="flex items-start gap-2 px-4 py-4">
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
-                    <span className="inline-flex items-center rounded-full bg-violet-600 px-2 py-0.5 text-xs font-semibold text-white">
+                    <span className="inline-flex items-center rounded-full bg-violet-600 px-2 py-0.5 text-[10px] font-bold text-white tracking-wide">
                       {selected.category}
                     </span>
-                    <span className="text-xs text-slate-500">조선대 근처</span>
+                    <span className="text-[11px] font-medium text-slate-400">조선대 근처</span>
                   </div>
-                  <div className="mt-1 truncate text-base font-semibold text-slate-900">
+                  <div className="mt-1.5 truncate text-lg font-bold text-slate-900">
                     {selected.name}
                   </div>
-                  <div className="mt-1 text-sm font-semibold text-violet-700">
+                  <div className="mt-0.5 text-sm font-bold text-violet-700">
                     {selected.representative_price}
                   </div>
-                  <div className="mt-1 whitespace-pre-wrap text-sm leading-relaxed text-slate-700">
+                  {/* 한글 단어 단위 줄바꿈(break-keep) 적용으로 문장 깨짐 방지 */}
+                  <div className="mt-2.5 whitespace-pre-wrap break-keep text-[13px] leading-relaxed text-slate-600">
                     {selected.note}
                   </div>
                 </div>
                 <button
                   type="button"
                   onClick={() => setSelectedId(null)}
-                  className="inline-flex h-8 w-8 items-center justify-center rounded-full text-slate-500 hover:bg-slate-100 hover:text-slate-700"
+                  className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition-colors"
                   aria-label="닫기"
                 >
                   <svg viewBox="0 0 24 24" className="h-5 w-5">
@@ -130,15 +132,15 @@ function KakaoMapView() {
                 </button>
               </div>
 
-              <div className="border-t border-slate-100 px-4 py-3">
-                <div className="text-xs font-medium text-slate-500">주소</div>
-                <div className="mt-1 text-sm text-slate-800">{selected.address}</div>
+              <div className="border-t border-slate-100 bg-slate-50 px-4 py-3">
+                <div className="text-[11px] font-semibold text-slate-500">주소</div>
+                <div className="mt-0.5 break-keep text-[12px] text-slate-700">{selected.address}</div>
                 {selected.tags?.length ? (
-                  <div className="mt-2 flex flex-wrap gap-1.5">
+                  <div className="mt-2.5 flex flex-wrap gap-1.5">
                     {selected.tags.map((t) => (
                       <span
                         key={t}
-                        className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-700"
+                        className="rounded-md border border-slate-200 bg-white px-2 py-1 text-[11px] font-semibold text-slate-600 shadow-sm"
                       >
                         #{t}
                       </span>
@@ -151,10 +153,11 @@ function KakaoMapView() {
         ) : null}
       </Map>
 
-      <div className="pointer-events-none absolute left-4 top-4 rounded-2xl border border-black/10 bg-white/90 px-4 py-3 shadow-lg backdrop-blur">
-        <div className="text-sm font-semibold text-slate-900">조대 후문 가성비 맛집 지도</div>
-        <div className="mt-0.5 text-xs text-slate-600">
-          가격은 지도 위 말풍선으로 항상 보여요. 누르면 상세 정보가 열려요.
+      {/* 좌측 상단 안내 박스 Z-index 상향 조정 */}
+      <div className="pointer-events-none absolute left-4 top-4 z-[1000] rounded-2xl border border-black/10 bg-white/95 px-4 py-3 shadow-lg backdrop-blur">
+        <div className="text-sm font-bold text-slate-900">조대 후문 가성비 맛집 지도</div>
+        <div className="mt-0.5 text-[11px] font-medium text-slate-500">
+          마커를 누르면 상세 가성비 정보를 볼 수 있어요.
         </div>
       </div>
     </div>
