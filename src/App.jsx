@@ -4,7 +4,7 @@ import restaurantsData from './data/restaurants.json'
 import { config } from './config.js'
 
 // 후원 페이지 URL — Toss / Buy Me a Coffee 등으로 교체하세요.
-const COFFEE_DONATION_URL = '#'
+const COFFEE_DONATION_URL = 'https://ctee.kr/place/chosun_dev'
 
 function CoffeeDonateButton() {
   return (
