@@ -1,7 +1,25 @@
 import { useMemo, useState } from 'react'
 import { CustomOverlayMap, Map, MapMarker, useKakaoLoader } from 'react-kakao-maps-sdk'
 import restaurantsData from './data/restaurants.json'
-import { config } from './config'
+import { config } from './config.js'
+
+// 후원 페이지 URL — Toss / Buy Me a Coffee 등으로 교체하세요.
+const COFFEE_DONATION_URL = '#'
+
+function CoffeeDonateButton() {
+  return (
+    <a
+      href={COFFEE_DONATION_URL}
+      // TODO: 위 COFFEE_DONATION_URL을 실제 후원 링크로 변경하세요. (# 이면 동일 탭으로 이동만 함)
+      target="_blank"
+      rel="noopener noreferrer"
+      className="fixed bottom-6 right-6 z-[10050] rounded-full px-4 py-3 text-sm font-semibold text-slate-900 shadow-[0_8px_24px_rgba(0,0,0,0.18)] transition hover:brightness-[0.97] active:scale-[0.98]"
+      style={{ backgroundColor: '#FFDD00' }}
+    >
+      개발자에게 커피 사주기 ☕
+    </a>
+  )
+}
 
 function KakaoMapView() {
   const [loading, error] = useKakaoLoader({
@@ -103,20 +121,28 @@ function KakaoMapView() {
 function App() {
   if (!config.kakaoApiKey) {
     return (
-      <div className="flex h-screen items-center justify-center bg-slate-50 p-6">
-        <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 text-center shadow-xl">
-          <div className="text-base font-semibold text-slate-900">API 키 설정 필요</div>
-          <div className="mt-2 text-sm text-slate-600">
-            카카오 지도 API 키가 설정되어 있지 않습니다.
-            <br />
-            Vercel 환경변수에 <span className="font-mono">VITE_KAKAO_API_KEY</span>를 추가해주세요.
+      <>
+        <div className="flex h-screen items-center justify-center bg-slate-50 p-6">
+          <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 text-center shadow-xl">
+            <div className="text-base font-semibold text-slate-900">API 키 설정 필요</div>
+            <div className="mt-2 text-sm text-slate-600">
+              카카오 지도 API 키가 설정되어 있지 않습니다.
+              <br />
+              Vercel 환경변수에 <span className="font-mono">VITE_KAKAO_API_KEY</span>를 추가해주세요.
+            </div>
           </div>
         </div>
-      </div>
+        <CoffeeDonateButton />
+      </>
     )
   }
 
-  return <KakaoMapView />
+  return (
+    <>
+      <KakaoMapView />
+      <CoffeeDonateButton />
+    </>
+  )
 }
 
 export default App
