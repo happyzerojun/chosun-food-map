@@ -2,7 +2,7 @@
   {
     "id": "mujinjang-tteokbokki",
     "name": "무진장 떡볶이",
-    "category": "분식",
+    "category": "종합분식",
     "representative_price": "7,000원~",
     "address": "광주광역시 동구 필문대로287번길 24-14",
     "position": { "lat": 35.1444424957612, "lng": 126.929536833402 },
@@ -11,7 +11,7 @@
   },
   {
     "id": "bab-s",
-    "name": "밥s",
+    "name": "밥's",
     "category": "분식/식사",
     "representative_price": "4,500원~",
     "address": "동구 지산동 500",
@@ -58,5 +58,75 @@
     "position": { "lat": 35.1443183446031, "lng": 126.929789443425 },
     "tags": ["백반", "한식", "매일 구성 다름"],
     "note": "매일 다른 백반 구성 8,000원"
+  },
+  {
+    "id": "babsarang-sulsarang",
+    "name": "밥사랑 술사랑",
+    "category": "한식",
+    "representative_price": "7,500원~",
+    "address": "광주광역시 동구 필문대로287번길 8",
+    "position": { "lat": 35.14548794, "lng": 126.9277832 },
+    "tags": ["연탄주물럭", "김치찌개", "노포감성"],
+    "note": "연탄주물럭 소 15,000원, 김치찌개/쌈밥 8,000원. 친근한 사장님과 노포 감성이 느껴지는 맛집"
+  },
+  {
+    "id": "kaya-bunsik",
+    "name": "카야분식",
+    "category": "종합분식",
+    "representative_price": "8,500원~",
+    "address": "광주광역시 동구 필문대로287번길 29",
+    "position": { "lat": 35.14471843, "lng": 126.9299008 },
+    "tags": ["날치알밥", "분식"],
+    "note": "톡톡 터지는 날치알밥 8,500원"
+  },
+  {
+    "id": "sosaewon",
+    "name": "소쇄원",
+    "category": "돼지고기구이",
+    "representative_price": "6,000원~",
+    "address": "광주광역시 동구 필문대로287번길 28",
+    "position": { "lat": 35.1446116, "lng": 126.929702 },
+    "tags": ["삼겹살", "애호박찌개", "주류2000원"],
+    "note": "주류 2,000원 점심 애호박+계란찜 8,500원 삼겹살 6,000원"
+  },
+  {
+    "id": "gilmok-sikdang",
+    "name": "길목식당",
+    "category": "한식",
+    "representative_price": "7,000원~",
+    "address": "광주 동구 필문대로287번길 18",
+    "position": { "lat": 35.14515182, "lng": 126.9286796 },
+    "tags": ["제육볶음", "한식"],
+    "note": "제육볶음 7,000원"
+  },
+  {
+    "id": "julbyeorak",
+    "name": "줄벼락",
+    "category": "한식",
+    "representative_price": "8,000원~",
+    "address": "광주 동구 필문대로287번길 29-3",
+    "position": { "lat": 35.14480538, "lng": 126.9298388 },
+    "tags": ["고기주는냉면", "쌈밥", "한식"],
+    "note": "냉면 + 고기 , 비빔밥/쌈밥 + 고기 전부 8,000원"
+  },
+  {
+    "id": "taesu-bunsik",
+    "name": "태수분식",
+    "category": "종합분식",
+    "representative_price": "4,000원~",
+    "address": "광주광역시 동구 지산로 7",
+    "position": { "lat": 35.1448457, "lng": 126.9303556 },
+    "tags": ["튀김", "떡볶이", "분식"],
+    "note": "튀김 + 떡볶이 6,000원"
+  },
+  {
+    "id": "omniscient-pig",
+    "name": "전지적 돼지시점",
+    "category": "육류,고기요리",
+    "representative_price": "7,500원~",
+    "address": "광주 동구 지산로 40",
+    "position": { "lat": 35.14733348, "lng": 126.9321521 },
+    "tags": ["돼지김치찌개", "불고기", "고기요리"],
+    "note": "돼지 김치찌개 7,500원 간장/고추장 불고기 8,500원"
   }
 ]
