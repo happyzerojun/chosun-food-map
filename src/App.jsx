@@ -174,9 +174,9 @@ function KakaoMapView() {
       </Map>
 
       <div className="pointer-events-none absolute left-4 top-4 z-[1000] rounded-2xl border border-black/10 bg-white/95 px-4 py-3 shadow-lg backdrop-blur">
-        <div className="text-sm font-bold text-slate-900">조대 후문 가성비 맛집 지도</div>
+        <div className="text-sm font-bold text-slate-900">조대 후문 맛집 지도</div>
         <div className="mt-0.5 text-[11px] font-medium text-slate-500">
-          마커를 누르면 상세 가성비 정보를 볼 수 있어요.
+          마커를 누르면 상세 정보를 볼 수 있어요.
         </div>
       </div>
     </div>
