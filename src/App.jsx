@@ -33,7 +33,6 @@ function KakaoMapView({ onReady }) {
         const { data, error } = await supabase
           .from('restaurants_with_stats')
           .select('*')
-
         if (error) throw error
         setRestaurantsData(data || [])
       } catch (err) {
@@ -45,6 +44,7 @@ function KakaoMapView({ onReady }) {
     fetchRestaurants()
   }, [])
 
+  // 🚀 카테고리 목록 추출
   const allTags = useMemo(() => {
     const tags = new Set()
     restaurantsData.forEach(r => { if (r.category) tags.add(r.category) })
@@ -53,17 +53,13 @@ function KakaoMapView({ onReady }) {
 
   const filteredAndSortedData = useMemo(() => {
     let result = [...restaurantsData]
-
     if (filterTag !== 'all') {
       result = result.filter(r => r.category === filterTag || r.tags?.includes(filterTag))
     }
-
     const getPrice = (p) => parseInt(p?.replace(/[^0-9]/g, '')) || 0
-
     if (sortBy === 'priceAsc') result.sort((a, b) => getPrice(a.representative_price) - getPrice(b.representative_price))
     else if (sortBy === 'priceDesc') result.sort((a, b) => getPrice(b.representative_price) - getPrice(a.representative_price))
     else if (sortBy === 'ratingDesc') result.sort((a, b) => b.avg_rating - a.avg_rating)
-
     return result
   }, [sortBy, filterTag, restaurantsData])
 
@@ -86,86 +82,75 @@ function KakaoMapView({ onReady }) {
   }
 
   if (errorMap) return <div className="flex h-screen items-center justify-center text-red-500">지도 로드 실패</div>
-  if (loadingMap || isDataLoading) return <div className="flex h-screen items-center justify-center font-bold text-slate-600">조대 후문 맛집 불러오는 중...</div>
+  if (loadingMap || isDataLoading) return <div className="flex h-screen items-center justify-center font-bold text-slate-600 font-sans">조대 후문 맛집 불러오는 중...</div>
 
   return (
-    <div className="flex flex-col md:flex-row h-screen w-screen overflow-hidden bg-slate-50">
+    <div className="flex flex-col md:flex-row h-screen w-screen overflow-hidden bg-slate-50 font-sans">
 
-      {/* 🚀 좌측 사이드바 영역 */}
-      <div className="w-full md:w-[380px] h-[40vh] md:h-full bg-white shadow-xl z-20 flex flex-col shrink-0 order-2 md:order-1 border-t md:border-t-0 md:border-r border-slate-200">
-        <div className="p-5 border-b border-slate-100 bg-white">
-
-          {/* 🚀 헤더: 제목 + 커피 후원 버튼 통합 */}
-          <div className="flex justify-between items-center">
-            <h1 className="text-xl font-black text-slate-900 tracking-tight">조대 후문 맛집</h1>
+      {/* 🚀 좌측 사이드바: 가로 스크롤 카테고리 적용 */}
+      <div className="w-full md:w-[380px] h-[38vh] md:h-full bg-white shadow-xl z-20 flex flex-col shrink-0 order-2 md:order-1 border-t md:border-t-0 md:border-r border-slate-200">
+        <div className="p-4 md:p-5 border-b border-slate-100 bg-white">
+          <div className="flex justify-between items-center mb-4">
+            <h1 className="text-lg md:text-xl font-black text-slate-900 tracking-tight">조대 후문 맛집</h1>
             <a
               href={COFFEE_DONATION_URL}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-1 bg-[#FFDD00] text-slate-900 text-[11px] font-bold px-3 py-1.5 rounded-full shadow-sm hover:brightness-95 hover:scale-105 transition-all whitespace-nowrap"
+              className="flex items-center gap-1 bg-[#FFDD00] text-slate-900 text-[10px] md:text-[11px] font-bold px-3 py-1.5 rounded-full shadow-sm hover:scale-105 transition-transform"
             >
               커피 사주기 ☕
             </a>
           </div>
 
-          <div className="flex gap-2 mt-4">
-            <select className="flex-1 rounded-xl border border-slate-200 px-3 py-2 text-xs font-bold" value={filterTag} onChange={(e)=>setFilterTag(e.target.value)}>
-              <option value="all">모든 카테고리</option>
-              {allTags.filter(t=>t!=='all').map(t=><option key={t} value={t}>{t}</option>)}
-            </select>
-            <select className="flex-1 rounded-xl border border-slate-200 px-3 py-2 text-xs font-bold" value={sortBy} onChange={(e)=>setSortBy(e.target.value)}>
-              <option value="default">기본순</option>
-              <option value="ratingDesc">별점 높은순 ⭐</option>
+          {/* 🚀 카테고리 가로 스크롤바 (핵심 수정) */}
+          <div className="flex overflow-x-auto gap-2 pb-2 no-scrollbar scroll-smooth">
+            {allTags.map(tag => (
+              <button
+                key={tag}
+                onClick={() => setFilterTag(tag)}
+                className={`px-3 py-1.5 rounded-full text-[11px] md:text-xs font-bold whitespace-nowrap border transition-all ${filterTag === tag ? 'bg-violet-600 border-violet-600 text-white shadow-sm' : 'bg-white border-slate-200 text-slate-600 hover:border-violet-300'}`}
+              >
+                {tag === 'all' ? '전체보기' : tag}
+              </button>
+            ))}
+          </div>
+
+          {/* 정렬 옵션은 카테고리 밑에 작게 배치 */}
+          <div className="mt-2 flex justify-end">
+            <select className="bg-transparent text-[10px] md:text-[11px] font-bold text-slate-400 outline-none cursor-pointer" value={sortBy} onChange={(e)=>setSortBy(e.target.value)}>
+              <option value="default">기본 정렬</option>
+              <option value="ratingDesc">별점 높은순</option>
               <option value="priceAsc">가격 낮은순</option>
             </select>
           </div>
         </div>
 
-        {/* 🚀 사이드바 리스트: 노트(note)와 태그(tags) 복구 */}
-        <ul className="flex-1 overflow-y-auto p-3 space-y-2 custom-scrollbar">
+        <ul className="flex-1 overflow-y-auto p-3 space-y-2 custom-scrollbar bg-slate-50/50">
           {filteredAndSortedData.map(r => (
             <li
               key={r.id}
-              onMouseEnter={() => setHoveredId(r.id)}
-              onMouseLeave={() => setHoveredId(null)}
               onClick={() => setSelectedId(r.id)}
-              className={`p-4 rounded-2xl border transition-all cursor-pointer ${selectedId === r.id ? 'border-violet-500 bg-violet-50 ring-2 ring-violet-200' : 'border-slate-100 bg-white hover:border-violet-300'}`}
+              className={`p-4 rounded-2xl border transition-all cursor-pointer shadow-sm ${selectedId === r.id ? 'border-violet-500 bg-violet-50 ring-2 ring-violet-100' : 'border-white bg-white hover:border-violet-200'}`}
             >
               <div className="flex justify-between items-start mb-2">
-                <span className="text-[10px] font-black text-white bg-violet-600 px-2 py-0.5 rounded-full">{r.category}</span>
+                <span className="text-[9px] md:text-[10px] font-black text-white bg-violet-600 px-2 py-0.5 rounded-full">{r.category}</span>
                 <div className="flex items-center gap-1">
                   <span className="text-yellow-400 text-xs">★</span>
                   <span className="text-xs font-bold text-slate-600">{r.avg_rating}</span>
                 </div>
               </div>
-
               <div className="flex justify-between items-end gap-2">
-                <h3 className="text-base font-black text-slate-900 leading-tight">{r.name}</h3>
-                <span className="text-sm font-bold text-violet-700 whitespace-nowrap">{r.representative_price}</span>
+                <h3 className="text-sm md:text-base font-black text-slate-900 leading-tight">{r.name}</h3>
+                <span className="text-[11px] md:text-sm font-bold text-violet-700 whitespace-nowrap">{r.representative_price}</span>
               </div>
-
-              {/* 복구된 노트(한줄 설명) */}
-              {r.note && (
-                <p className="text-xs text-slate-500 mt-2 line-clamp-2 leading-relaxed">{r.note}</p>
-              )}
-
-              {/* 복구된 태그 */}
-              {r.tags && r.tags.length > 0 && (
-                <div className="mt-2.5 flex flex-wrap gap-1">
-                  {r.tags.map(t => (
-                    <span key={t} className="px-1.5 py-0.5 rounded bg-slate-100 border border-slate-200 text-[10px] font-medium text-slate-500">
-                      #{t}
-                    </span>
-                  ))}
-                </div>
-              )}
+              {r.note && <p className="text-[11px] text-slate-500 mt-2 line-clamp-1">{r.note}</p>}
             </li>
           ))}
         </ul>
       </div>
 
       {/* 🚀 우측 지도 영역 */}
-      <div className="flex-1 relative h-[60vh] md:h-full order-1 md:order-2">
+      <div className="flex-1 relative h-[62vh] md:h-full order-1 md:order-2">
         <Map center={center} level={3} style={{ width: '100%', height: '100%' }}>
           {filteredAndSortedData.map((r) => {
             const isHighlighted = selectedId === r.id || hoveredId === r.id;
@@ -175,41 +160,46 @@ function KakaoMapView({ onReady }) {
                   onClick={() => setSelectedId(r.id)}
                   className={`flex flex-col items-center transition-all duration-200 ${isHighlighted ? 'scale-110' : 'scale-100'} ${getVisualOffset(r.id)}`}
                 >
-                  <div className={`rounded-2xl border px-3 py-2 shadow-2xl transition-colors ${isHighlighted ? 'bg-violet-600 border-violet-800 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="text-[11px] font-black">{r.representative_price}</span>
+                  {/* 🚀 마커 내 가게 이름 복구 (핵심 수정) */}
+                  <div className={`rounded-xl border px-3 py-1.5 shadow-xl transition-colors ${isHighlighted ? 'bg-violet-600 border-violet-800 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
+                    <div className="flex items-center justify-center gap-1.5">
+                      <span className="text-[10px] font-black">{r.representative_price}</span>
                       <div className="flex items-center gap-0.5">
-                        <span className="text-[10px] text-yellow-400">★</span>
-                        <span className={`text-[10px] font-bold ${isHighlighted ? 'text-white' : 'text-slate-500'}`}>{r.avg_rating}</span>
+                        <span className="text-[9px] text-yellow-400">★</span>
+                        <span className={`text-[9px] font-bold ${isHighlighted ? 'text-white' : 'text-slate-500'}`}>{r.avg_rating}</span>
                       </div>
                     </div>
-                    <span className={`mt-0.5 block max-w-[110px] truncate text-center text-[10px] font-bold ${isHighlighted ? 'text-violet-200' : 'text-slate-400'}`}>{r.name}</span>
+                    {/* 가게 이름 표시 */}
+                    <div className={`mt-0.5 text-center text-[9px] font-bold truncate max-w-[80px] ${isHighlighted ? 'text-violet-100' : 'text-slate-400'}`}>
+                      {r.name}
+                    </div>
                   </div>
-                  <svg width="20" height="9"><path d="M10 9 L1 1 H19 Z" fill={isHighlighted ? '#7c3aed' : '#ffffff'} stroke={isHighlighted ? '#5b21b6' : 'rgba(0,0,0,0.1)'} strokeWidth="1"/></svg>
+                  <svg width="18" height="8"><path d="M9 8 L1 1 H17 Z" fill={isHighlighted ? '#7c3aed' : '#ffffff'} stroke={isHighlighted ? '#5b21b6' : 'rgba(0,0,0,0.1)'} strokeWidth="1"/></svg>
                 </button>
               </CustomOverlayMap>
             )
           })}
         </Map>
 
-        {/* 고정형 상세 정보 패널 */}
+        {/* 고정형 상세 정보 패널 (짤림 방지) */}
         {selected && (
-          <div className="absolute bottom-0 left-0 right-0 md:top-4 md:right-4 md:left-auto md:bottom-auto z-[10001] p-4 pointer-events-none">
-            <div className="pointer-events-auto w-full md:w-[400px] bg-white rounded-t-3xl md:rounded-3xl shadow-[0_-10px_40px_rgba(0,0,0,0.2)] md:shadow-2xl flex flex-col overflow-hidden max-h-[80vh] animate-in slide-in-from-bottom-10 duration-300">
-              <div className="sticky top-0 bg-white p-5 border-b flex justify-between items-start">
-                <div>
-                  <span className="bg-violet-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">{selected.category}</span>
-                  <h2 className="text-xl font-black text-slate-900 mt-2">{selected.name}</h2>
+          <div className="absolute bottom-0 left-0 right-0 md:top-4 md:right-4 md:left-auto md:bottom-auto z-[10001] p-3 md:p-0 pointer-events-none">
+            <div className="pointer-events-auto w-full md:w-[380px] bg-white rounded-t-2xl md:rounded-2xl shadow-2xl flex flex-col overflow-hidden max-h-[58vh] md:max-h-[85vh] animate-in slide-in-from-bottom-10 duration-300">
+              <div className="h-1 bg-slate-200 w-8 rounded-full mx-auto my-2 md:hidden" />
+              <div className="sticky top-0 bg-white px-5 py-3 md:py-4 border-b flex justify-between items-start">
+                <div className="min-w-0 flex-1">
+                  <span className="bg-violet-600 text-white text-[9px] font-bold px-2 py-0.5 rounded-full">{selected.category}</span>
+                  <h2 className="text-lg md:text-xl font-black text-slate-900 mt-1 truncate">{selected.name}</h2>
                 </div>
-                <button onClick={() => setSelectedId(null)} className="p-2 bg-slate-100 rounded-full text-slate-400 hover:text-slate-700">
-                  <svg viewBox="0 0 24 24" className="h-6 w-6"><path fill="currentColor" d="M18.3 5.71a1 1 0 0 1 0 1.42L13.42 12l4.88 4.88a1 1 0 1 1-1.42 1.42L12 13.42l-4.88 4.88a1 1 0 1 1-1.42-1.42L10.58 12 5.7 7.12a1 1 0 0 1 1.42-1.42L12 10.58l4.88-4.88a1 1 0 0 1 1.42 0Z"/></svg>
+                <button onClick={() => setSelectedId(null)} className="p-2 bg-slate-50 rounded-full text-slate-400 hover:text-slate-700">
+                  <svg viewBox="0 0 24 24" className="h-5 w-5 md:h-6 md:w-6"><path fill="currentColor" d="M18.3 5.71a1 1 0 0 1 0 1.42L13.42 12l4.88 4.88a1 1 0 1 1-1.42 1.42L12 13.42l-4.88 4.88a1 1 0 1 1-1.42-1.42L10.58 12 5.7 7.12a1 1 0 0 1 1.42-1.42L12 10.58l4.88-4.88a1 1 0 0 1 1.42 0Z"/></svg>
                 </button>
               </div>
-              <div className="overflow-y-auto flex-1 custom-scrollbar">
+              <div className="overflow-y-auto flex-1 custom-scrollbar pb-4">
                 <div className="p-5">
                   <p className="text-sm font-bold text-violet-700">{selected.representative_price}</p>
-                  <p className="text-sm text-slate-600 mt-2 leading-relaxed break-keep">{selected.note}</p>
-                  <div className="mt-4 p-4 bg-slate-50 rounded-2xl border border-slate-100 text-xs font-medium text-slate-500">{selected.address}</div>
+                  <p className="text-[12px] md:text-sm text-slate-600 mt-2 leading-relaxed break-keep">{selected.note}</p>
+                  <div className="mt-4 p-3 bg-slate-50 rounded-xl border border-slate-100 text-[11px] text-slate-500 font-medium">{selected.address}</div>
                 </div>
                 <RestaurantReviews restaurantId={selected.id} />
               </div>
@@ -233,7 +223,6 @@ function App() {
           <AdSense isReady={contentReady} />
         </div>
       </div>
-      {/* 🚀 플로팅 버튼(CoffeeDonateButton) 삭제 완료 */}
     </>
   )
 }
