@@ -1,7 +1,9 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 import { CustomOverlayMap, Map, useKakaoLoader } from 'react-kakao-maps-sdk'
 import restaurantsData from './data/restaurants.json'
 import { config } from './config.js'
+import { RestaurantReviews } from './components/RestaurantReviews.jsx'
+import AdSense from './components/AdSense.jsx'
 
 // 후원 페이지 URL
 const COFFEE_DONATION_URL = 'https://ctee.kr/place/chosun_dev'
@@ -20,13 +22,13 @@ function CoffeeDonateButton() {
   )
 }
 
-function KakaoMapView() {
+function KakaoMapView({ onReady }) {
   const [loading, error] = useKakaoLoader({
     appkey: config.kakaoApiKey,
     libraries: ['services'],
   })
 
-  // 후원 버튼 및 UI와의 밸런스를 고려해 초기 중심 좌표를 살짝 보정했습니다.
+  // 후원 버튼 및 UI와의 밸런스를 고려해 초기 중심 좌표 보정
   const center = useMemo(() => ({ lat: 35.1448, lng: 126.9305 }), [])
   const restaurants = restaurantsData
   const [selectedId, setSelectedId] = useState(() => restaurantsData[0]?.id ?? null)
@@ -36,7 +38,14 @@ function KakaoMapView() {
     [restaurants, selectedId],
   )
 
-  // [핵심 로직] 원본 좌표는 유지하되, 겹치는 마커들을 시각적으로만 분산시키는 함수
+  // [핵심 로직] 지도가 로드 완료되면 부모 컴포넌트에 알림
+  useEffect(() => {
+    if (!loading && !error) {
+      onReady(true)
+    }
+  }, [loading, error, onReady])
+
+  // 원본 좌표는 유지하되, 겹치는 마커들을 시각적으로만 분산시키는 함수
   const getVisualOffset = (id) => {
     switch (id) {
       case 'tongkeun-donkatsu':
@@ -61,6 +70,7 @@ function KakaoMapView() {
         </div>
       </div>
     )
+
   if (loading) return <div className="flex h-screen items-center justify-center">지도를 불러오는 중...</div>
 
   return (
@@ -69,7 +79,7 @@ function KakaoMapView() {
         {restaurants.map((r) => (
           <CustomOverlayMap
             key={r.id}
-            position={r.position} // 원본 좌표는 절대 수정하지 않음
+            position={r.position}
             xAnchor={0.5}
             yAnchor={1}
             zIndex={selectedId === r.id ? 20 : 12}
@@ -78,7 +88,6 @@ function KakaoMapView() {
             <button
               type="button"
               onClick={() => setSelectedId(r.id)}
-              // 오프셋 함수를 클래스에 적용하여 렌더링 위치만 분산시킴
               className={`flex cursor-pointer flex-col items-center border-0 bg-transparent p-0 outline-none hover:scale-105 transition-transform ${getVisualOffset(r.id)}`}
               aria-label={`${r.name} ${r.representative_price} 상세 보기`}
             >
@@ -115,32 +124,27 @@ function KakaoMapView() {
             yAnchor={1.12}
             zIndex={40}
           >
+            {/* 🚀 수정됨: 화면 크기에 맞춰 유연하게 줄어들고(max-w), 최대 높이를 제한(max-h)하여 스크롤 생성 */}
             <div
-              // 선택된 마커의 오프셋에 맞춰 상세창도 자연스럽게 따라가도록 클래스 적용
-              className={`w-[280px] overflow-hidden rounded-2xl border border-black/10 bg-white shadow-2xl ${getVisualOffset(selected.id)}`}
+              className={`pointer-events-auto w-[320px] max-w-[90vw] max-h-[65vh] flex flex-col overflow-hidden rounded-2xl border border-black/10 bg-white shadow-2xl ${getVisualOffset(selected.id)}`}
             >
-              <div className="flex items-start gap-2 px-4 py-4">
+              {/* 상단 헤더 영역 (고정) */}
+              <div className="sticky top-0 z-10 flex-shrink-0 bg-white px-4 py-3 border-b border-slate-100 flex items-start justify-between gap-2 shadow-sm">
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
                     <span className="inline-flex items-center rounded-full bg-violet-600 px-2 py-0.5 text-[10px] font-bold text-white tracking-wide">
                       {selected.category}
                     </span>
-                    <span className="text-[11px] font-medium text-slate-400">조선대 근처</span>
+                    <span className="text-[11px] font-medium text-slate-400 whitespace-nowrap">조선대 근처</span>
                   </div>
-                  <div className="mt-1.5 truncate text-lg font-bold text-slate-900">
+                  <div className="mt-1 truncate text-lg font-bold text-slate-900">
                     {selected.name}
-                  </div>
-                  <div className="mt-0.5 text-sm font-bold text-violet-700">
-                    {selected.representative_price}
-                  </div>
-                  <div className="mt-2.5 whitespace-pre-wrap break-keep text-[13px] leading-relaxed text-slate-600">
-                    {selected.note}
                   </div>
                 </div>
                 <button
                   type="button"
                   onClick={() => setSelectedId(null)}
-                  className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition-colors"
+                  className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-slate-800 transition-colors"
                   aria-label="닫기"
                 >
                   <svg viewBox="0 0 24 24" className="h-5 w-5">
@@ -152,27 +156,43 @@ function KakaoMapView() {
                 </button>
               </div>
 
-              <div className="border-t border-slate-100 bg-slate-50 px-4 py-3">
-                <div className="text-[11px] font-semibold text-slate-500">주소</div>
-                <div className="mt-0.5 break-keep text-[12px] text-slate-700">{selected.address}</div>
-                {selected.tags?.length ? (
-                  <div className="mt-2.5 flex flex-wrap gap-1.5">
-                    {selected.tags.map((t) => (
-                      <span
-                        key={t}
-                        className="rounded-md border border-slate-200 bg-white px-2 py-1 text-[11px] font-semibold text-slate-600 shadow-sm"
-                      >
-                        #{t}
-                      </span>
-                    ))}
+              {/* 본문 및 리뷰 영역 (스크롤 가능 영역) */}
+              <div className="overflow-y-auto flex-1 p-0">
+                <div className="px-4 py-3">
+                  <div className="text-sm font-bold text-violet-700">
+                    {selected.representative_price}
                   </div>
-                ) : null}
+                  <div className="mt-2 whitespace-pre-wrap break-keep text-[13px] leading-relaxed text-slate-600">
+                    {selected.note}
+                  </div>
+                </div>
+
+                <div className="border-t border-slate-100 bg-slate-50 px-4 py-3">
+                  <div className="text-[11px] font-semibold text-slate-500">주소</div>
+                  <div className="mt-0.5 break-keep text-[12px] text-slate-700">{selected.address}</div>
+                  {selected.tags?.length ? (
+                    <div className="mt-2.5 flex flex-wrap gap-1.5">
+                      {selected.tags.map((t) => (
+                        <span
+                          key={t}
+                          className="rounded-md border border-slate-200 bg-white px-2 py-1 text-[11px] font-semibold text-slate-600 shadow-sm"
+                        >
+                          #{t}
+                        </span>
+                      ))}
+                    </div>
+                  ) : null}
+                </div>
+
+                {/* 하단 리뷰 컴포넌트 */}
+                <RestaurantReviews restaurantId={selected.id} />
               </div>
             </div>
           </CustomOverlayMap>
         ) : null}
       </Map>
 
+      {/* 좌측 상단 플로팅 안내문 */}
       <div className="pointer-events-none absolute left-4 top-4 z-[1000] rounded-2xl border border-black/10 bg-white/95 px-4 py-3 shadow-lg backdrop-blur">
         <div className="text-sm font-bold text-slate-900">조대 후문 맛집 지도</div>
         <div className="mt-0.5 text-[11px] font-medium text-slate-500">
@@ -184,6 +204,8 @@ function KakaoMapView() {
 }
 
 function App() {
+  const [contentReady, setContentReady] = useState(false)
+
   if (!config.kakaoApiKey) {
     return (
       <>
@@ -204,7 +226,15 @@ function App() {
 
   return (
     <>
-      <KakaoMapView />
+      <KakaoMapView onReady={setContentReady} />
+
+      {/* 콘텐츠가 준비된 시점에만 AdSense 가동 */}
+      <div className="fixed top-0 left-0 w-full z-[9999] pointer-events-none">
+        <div className="pointer-events-auto max-w-4xl mx-auto">
+          <AdSense isReady={contentReady} />
+        </div>
+      </div>
+
       <CoffeeDonateButton />
     </>
   )
