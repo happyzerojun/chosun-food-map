@@ -36,7 +36,7 @@ function KakaoMapView({ onReady }) {
         if (error) throw error
         setRestaurantsData(data || [])
       } catch (err) {
-        console.error('데이터 로드 실패:', err)
+        console.error('데이터 로드 실패했음:', err)
       } finally {
         setIsDataLoading(false)
       }
