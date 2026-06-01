@@ -24,6 +24,8 @@ function KakaoMapView({ onReady }) {
   const [hoveredId, setHoveredId] = useState(null)
   const [sortBy, setSortBy] = useState('default')
   const [filterTag, setFilterTag] = useState('all')
+  // 🚀 펼치기 상태 추가
+  const [isExpanded, setIsExpanded] = useState(false)
 
   const center = useMemo(() => ({ lat: 35.1448, lng: 126.9305 }), [])
 
@@ -44,7 +46,6 @@ function KakaoMapView({ onReady }) {
     fetchRestaurants()
   }, [])
 
-  // 🚀 카테고리 목록 추출
   const allTags = useMemo(() => {
     const tags = new Set()
     restaurantsData.forEach(r => { if (r.category) tags.add(r.category) })
@@ -87,8 +88,17 @@ function KakaoMapView({ onReady }) {
   return (
     <div className="flex flex-col md:flex-row h-screen w-screen overflow-hidden bg-slate-50 font-sans">
 
-      {/* 🚀 좌측 사이드바: 가로 스크롤 카테고리 적용 */}
-      <div className="w-full md:w-[380px] h-[38vh] md:h-full bg-white shadow-xl z-20 flex flex-col shrink-0 order-2 md:order-1 border-t md:border-t-0 md:border-r border-slate-200">
+      {/* 🚀 좌측 사이드바 (펼침/줄이기 적용) */}
+      <div className={`w-full md:w-[380px] transition-all duration-300 ${isExpanded ? 'h-[85vh]' : 'h-[38vh]'} md:h-full bg-white shadow-xl z-20 flex flex-col shrink-0 order-2 md:order-1 border-t md:border-t-0 md:border-r border-slate-200`}>
+
+        {/* 모바일 펼치기/줄이기 버튼 */}
+        <button
+          onClick={() => setIsExpanded(!isExpanded)}
+          className="md:hidden w-full py-1.5 text-[10px] font-bold text-slate-400 bg-slate-50 border-b border-slate-200 flex justify-center items-center gap-1 active:bg-slate-100 transition-colors"
+        >
+          {isExpanded ? '▼ 목록 줄이기' : '▲ 목록 펼쳐보기'}
+        </button>
+
         <div className="p-4 md:p-5 border-b border-slate-100 bg-white">
           <div className="flex justify-between items-center mb-4">
             <h1 className="text-lg md:text-xl font-black text-slate-900 tracking-tight">조대 후문 맛집</h1>
@@ -102,7 +112,6 @@ function KakaoMapView({ onReady }) {
             </a>
           </div>
 
-          {/* 🚀 카테고리 가로 스크롤바 (핵심 수정) */}
           <div className="flex overflow-x-auto gap-2 pb-2 no-scrollbar scroll-smooth">
             {allTags.map(tag => (
               <button
@@ -115,7 +124,6 @@ function KakaoMapView({ onReady }) {
             ))}
           </div>
 
-          {/* 정렬 옵션은 카테고리 밑에 작게 배치 */}
           <div className="mt-2 flex justify-end">
             <select className="bg-transparent text-[10px] md:text-[11px] font-bold text-slate-400 outline-none cursor-pointer" value={sortBy} onChange={(e)=>setSortBy(e.target.value)}>
               <option value="default">기본 정렬</option>
@@ -150,7 +158,7 @@ function KakaoMapView({ onReady }) {
       </div>
 
       {/* 🚀 우측 지도 영역 */}
-      <div className="flex-1 relative h-[62vh] md:h-full order-1 md:order-2">
+      <div className={`flex-1 relative transition-all duration-300 ${isExpanded ? 'h-[15vh]' : 'h-[62vh]'} md:h-full order-1 md:order-2`}>
         <Map center={center} level={3} style={{ width: '100%', height: '100%' }}>
           {filteredAndSortedData.map((r) => {
             const isHighlighted = selectedId === r.id || hoveredId === r.id;
@@ -160,7 +168,6 @@ function KakaoMapView({ onReady }) {
                   onClick={() => setSelectedId(r.id)}
                   className={`flex flex-col items-center transition-all duration-200 ${isHighlighted ? 'scale-110' : 'scale-100'} ${getVisualOffset(r.id)}`}
                 >
-                  {/* 🚀 마커 내 가게 이름 복구 (핵심 수정) */}
                   <div className={`rounded-xl border px-3 py-1.5 shadow-xl transition-colors ${isHighlighted ? 'bg-violet-600 border-violet-800 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
                     <div className="flex items-center justify-center gap-1.5">
                       <span className="text-[10px] font-black">{r.representative_price}</span>
@@ -169,7 +176,6 @@ function KakaoMapView({ onReady }) {
                         <span className={`text-[9px] font-bold ${isHighlighted ? 'text-white' : 'text-slate-500'}`}>{r.avg_rating}</span>
                       </div>
                     </div>
-                    {/* 가게 이름 표시 */}
                     <div className={`mt-0.5 text-center text-[9px] font-bold truncate max-w-[80px] ${isHighlighted ? 'text-violet-100' : 'text-slate-400'}`}>
                       {r.name}
                     </div>
@@ -181,7 +187,7 @@ function KakaoMapView({ onReady }) {
           })}
         </Map>
 
-        {/* 고정형 상세 정보 패널 (짤림 방지) */}
+        {/* 고정형 상세 정보 패널 */}
         {selected && (
           <div className="absolute bottom-0 left-0 right-0 md:top-4 md:right-4 md:left-auto md:bottom-auto z-[10001] p-3 md:p-0 pointer-events-none">
             <div className="pointer-events-auto w-full md:w-[380px] bg-white rounded-t-2xl md:rounded-2xl shadow-2xl flex flex-col overflow-hidden max-h-[58vh] md:max-h-[85vh] animate-in slide-in-from-bottom-10 duration-300">
