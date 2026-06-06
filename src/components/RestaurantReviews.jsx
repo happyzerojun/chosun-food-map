@@ -44,8 +44,13 @@ function saveMyReview(reviewId, password) {
   localStorage.setItem(MY_REVIEWS_KEY, JSON.stringify(myReviews));
 }
 
-// 🚀 하드코딩된 프리셋 태그
-const PRESET_TAGS = ['#가성비', '#혼밥', '#분위기맛집', '#웨이팅있음', '#친절해요', '#양많음'];
+// 🚀 업데이트된 태그 프리셋
+const PRESET_TAGS = [
+  '#가성비', '#혼밥', '#분위기맛집', '#웨이팅있음', '#친절해요', '#양많음',
+  '#공강시간활용', '#시험기간', '#술자리추천', '#과제하기좋은', '#데이트',
+  '#밥무한리필', '#학식대안', '#가성비최고', '#해장각', '#현지인맛집',
+  '#혼밥러환영', '#면요리러버'
+];
 
 export function RestaurantReviews({ restaurantId }) {
   const apiUrl = useMemo(() => getReviewsApiUrl(), [])
