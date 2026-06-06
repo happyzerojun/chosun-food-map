@@ -75,11 +75,23 @@ function KakaoMapView({ onReady }) {
     [selectedId, restaurantsData]
   )
 
-  // 🚀 맛집 클릭 시 방문수 증가 로직
+// 🚀 맛집 클릭 시 방문수 증가 로직 (어뷰징 방어막 적용)
   const handleSelectRestaurant = async (id) => {
     setSelectedId(id)
+
+    // 하루 기준 플래그 생성 (예: view_lock_2023-10-25)
+    const todayStr = new Date().toISOString().split('T')[0];
+    const viewLockKey = `view_lock_${id}_${todayStr}`;
+
+    // 오늘 이미 클릭한 기록이 있다면 API 호출 안 함 (방어막)
+    if (localStorage.getItem(viewLockKey)) {
+       return;
+    }
+
     try {
       await supabase.rpc('increment_visit_count', { restaurant_id: id })
+      // 성공 시 방어막 세팅
+      localStorage.setItem(viewLockKey, 'true');
     } catch (err) {
       console.error('조회수 업데이트 실패:', err)
     }
