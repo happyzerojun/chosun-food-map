@@ -44,12 +44,20 @@ function saveMyReview(reviewId, password) {
   localStorage.setItem(MY_REVIEWS_KEY, JSON.stringify(myReviews));
 }
 
-// 🚀 업데이트된 태그 프리셋
-const PRESET_TAGS = [
-  '#가성비', '#혼밥', '#분위기맛집', '#웨이팅있음', '#친절해요', '#양많음',
-  '#공강시간활용', '#시험기간', '#술자리추천', '#과제하기좋은', '#데이트',
-  '#밥무한리필', '#학식대안', '#가성비최고', '#해장각', '#현지인맛집',
-  '#혼밥러환영', '#면요리러버'
+// 🚀 그룹화된 태그 프리셋 (카테고리별 분류)
+const TAG_CATEGORIES = [
+  {
+    title: '🎯 상황 및 목적',
+    tags: ['#공강시간활용', '#시험기간', '#술자리추천', '#과제하기좋은', '#데이트', '#혼밥']
+  },
+  {
+    title: '💰 가성비 및 양',
+    tags: ['#가성비최고', '#가성비', '#밥무한리필', '#양이엄청많음', '#학식대안']
+  },
+  {
+    title: '🤤 맛 및 특징',
+    tags: ['#해장각', '#현지인맛집', '#혼밥러환영', '#면요리러버', '#분위기맛집', '#친절해요', '#웨이팅있음']
+  }
 ];
 
 export function RestaurantReviews({ restaurantId }) {
@@ -283,44 +291,62 @@ export function RestaurantReviews({ restaurantId }) {
         </div>
       )}
 
-      {/* 모달 Portal 렌더링 부 */}
+      {/* 모달 Portal 렌더링 부 (바텀시트 & 스크롤 최적화) */}
       {isModalOpen && createPortal(
-        <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-sm rounded-3xl bg-white p-6 shadow-2xl relative animate-in fade-in zoom-in-95 duration-200">
-            <h3 className="text-xl font-black text-slate-900 mb-4">리뷰 남기기</h3>
-            <form className="space-y-4" onSubmit={handleSubmit}>
-              {formError && <div className="text-sm text-red-600 bg-red-50 p-2 rounded">{formError}</div>}
+        <div className="fixed inset-0 z-[99999] flex items-end md:items-center justify-center bg-black/60 p-0 md:p-4 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="w-full max-w-sm bg-white rounded-t-3xl md:rounded-3xl shadow-2xl flex flex-col max-h-[85vh] md:max-h-[90vh]">
 
-              {/* 닉네임 */}
-              <input maxLength={40} className="w-full rounded-xl border border-slate-200 px-3 py-3 text-sm focus:border-violet-500 focus:outline-none" value={nickname} onChange={(e) => setNickname(e.target.value)} />
-
-              {/* 별점 */}
-              <div className="flex items-center gap-3 bg-slate-50 p-3 rounded-xl border border-slate-100">
-                <label className="text-sm font-bold text-slate-700">별점</label>
-                 <select className="flex-1 bg-transparent font-black text-violet-700 text-lg cursor-pointer outline-none" value={rating} onChange={(e) => setRating(Number(e.target.value))}>
-                  {[5, 4, 3, 2, 1].map((n) => <option key={n} value={n}>{'⭐'.repeat(n)} ({n}점)</option>)}
-                </select>
-              </div>
-
-              {/* 🚀 클릭형 태그 토글 영역 */}
-              <div className="flex flex-wrap gap-2">
-                {PRESET_TAGS.map(tag => (
-                  <button type="button" key={tag} onClick={() => toggleTag(tag)} className={`px-2.5 py-1.5 rounded-full text-xs font-bold transition-colors ${selectedTags.includes(tag) ? 'bg-violet-600 text-white shadow-sm' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}>
-                    {tag}
-                  </button>
-                ))}
-              </div>
-
-              {/* 한줄평 (선택사항) */}
-              <textarea rows={3} maxLength={2000} placeholder="리뷰 내용 (선택사항)" className="w-full rounded-xl border border-slate-200 px-3 py-3 text-sm resize-none focus:border-violet-500 focus:outline-none" value={content} onChange={(e) => setContent(e.target.value)} />
-
-              <button type="submit" disabled={submitting} className="w-full rounded-xl bg-violet-600 py-4 text-sm font-black text-white shadow-lg hover:bg-violet-700 disabled:opacity-50 transition-all">
-                {submitting ? '등록 중...' : '작성 완료'}
+            {/* 헤더 (스크롤되지 않도록 고정) */}
+            <div className="px-6 pt-6 pb-4 border-b border-slate-50 flex justify-between items-center shrink-0">
+              <h3 className="text-xl font-black text-slate-900">리뷰 남기기</h3>
+              <button onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-slate-700 p-1">
+                <svg viewBox="0 0 24 24" className="h-6 w-6"><path fill="currentColor" d="M18.3 5.71a1 1 0 0 1 0 1.42L13.42 12l4.88 4.88a1 1 0 1 1-1.42 1.42L12 13.42l-4.88 4.88a1 1 0 1 1-1.42-1.42L10.58 12 5.7 7.12a1 1 0 0 1 1.42-1.42L12 10.58l4.88-4.88a1 1 0 0 1 1.42 0Z"/></svg>
               </button>
-              <button type="button" onClick={() => setIsModalOpen(false)} className="w-full py-2 text-sm text-slate-400 hover:text-slate-600 font-bold mt-2 transition-colors">
-                취소
-              </button>
-            </form>
+            </div>
+
+            {/* 🚀 폼 영역 (내부에서만 스크롤 가능) */}
+            <div className="overflow-y-auto px-6 pb-6 custom-scrollbar">
+              <form className="space-y-5 mt-2" onSubmit={handleSubmit}>
+                {formError && <div className="text-sm text-red-600 bg-red-50 p-3 rounded-xl font-bold">{formError}</div>}
+
+                {/* 닉네임 & 별점 병합 (공간 절약) */}
+                <div className="flex gap-2">
+                  <input maxLength={40} className="w-full min-w-0 flex-1 rounded-xl border border-slate-200 px-3 py-2.5 text-sm focus:border-violet-500 focus:outline-none bg-slate-50 focus:bg-white transition-colors" value={nickname} onChange={(e) => setNickname(e.target.value)} />
+                  <select className="shrink-0 rounded-xl border border-slate-200 px-2 py-2.5 bg-slate-50 font-black text-violet-700 text-sm focus:outline-none" value={rating} onChange={(e) => setRating(Number(e.target.value))}>
+                    {[5, 4, 3, 2, 1].map((n) => <option key={n} value={n}>{'⭐'.repeat(n)} {n}점</option>)}
+                  </select>
+                </div>
+
+                {/* 🚀 섹션별 클릭형 태그 토글 영역 */}
+                <div className="space-y-4 py-2">
+                  {TAG_CATEGORIES.map(category => (
+                    <div key={category.title}>
+                      <div className="text-[11px] font-bold text-slate-400 mb-2">{category.title}</div>
+                      <div className="flex flex-wrap gap-1.5">
+                        {category.tags.map(tag => (
+                          <button
+                            type="button"
+                            key={tag}
+                            onClick={() => toggleTag(tag)}
+                            className={`px-2.5 py-1.5 rounded-lg text-[11px] font-bold transition-all ${selectedTags.includes(tag) ? 'bg-violet-600 text-white shadow-md scale-105' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}
+                          >
+                            {tag}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* 한줄평 (선택사항) */}
+                <textarea rows={2} maxLength={2000} placeholder="간단한 리뷰를 남겨주세요 (선택사항)" className="w-full rounded-xl border border-slate-200 px-3 py-3 text-sm resize-none focus:border-violet-500 focus:outline-none bg-slate-50 focus:bg-white transition-colors" value={content} onChange={(e) => setContent(e.target.value)} />
+
+                <button type="submit" disabled={submitting} className="w-full rounded-xl bg-violet-600 py-4 text-sm font-black text-white shadow-xl shadow-violet-200 hover:bg-violet-700 disabled:opacity-50 transition-all active:scale-[0.98]">
+                  {submitting ? '등록 중...' : '작성 완료'}
+                </button>
+              </form>
+            </div>
+
           </div>
         </div>,
         document.body
