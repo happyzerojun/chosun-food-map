@@ -60,7 +60,7 @@ const TAG_CATEGORIES = [
   }
 ];
 
-export function RestaurantReviews({ restaurantId }) {
+export function RestaurantReviews({ restaurantId, restaurantName}) {
   const apiUrl = useMemo(() => getReviewsApiUrl(), [])
   const [reviews, setReviews] = useState([])
   const [loading, setLoading] = useState(true)
@@ -298,7 +298,7 @@ export function RestaurantReviews({ restaurantId }) {
 
             {/* 헤더 (스크롤되지 않도록 고정) */}
             <div className="px-6 pt-6 pb-4 border-b border-slate-50 flex justify-between items-center shrink-0">
-              <h3 className="text-xl font-black text-slate-900">리뷰 남기기</h3>
+              <h3 className="text-xl font-black text-slate-900">{restaurantName || '식당'} 리뷰 남기기</h3>
               <button onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-slate-700 p-1">
                 <svg viewBox="0 0 24 24" className="h-6 w-6"><path fill="currentColor" d="M18.3 5.71a1 1 0 0 1 0 1.42L13.42 12l4.88 4.88a1 1 0 1 1-1.42 1.42L12 13.42l-4.88 4.88a1 1 0 1 1-1.42-1.42L10.58 12 5.7 7.12a1 1 0 0 1 1.42-1.42L12 10.58l4.88-4.88a1 1 0 0 1 1.42 0Z"/></svg>
               </button>

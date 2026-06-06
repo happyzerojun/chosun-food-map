@@ -238,7 +238,7 @@ function KakaoMapView({ onReady }) {
 
                 {/* 리뷰 컴포넌트 추가 */}
                 <div className="px-5 pb-5">
-                  <RestaurantReviews restaurantId={selected.id} />
+                  <RestaurantReviews restaurantId={selected.id} restaurantName={selected.name} />
                 </div>
 
               </div>
