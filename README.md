@@ -1,16 +1,44 @@
-# React + Vite
+# 🍽️ 조선대 가성비 맛집 지도 (Chosun Food Map)
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+[![광주일보 보도](https://img.shields.io/badge/광주일보-인터뷰_보도-blue.svg)](http://kwangju.co.kr/article.php?aid=1779183000799171028)
 
-Currently, two official plugins are available:
+## 📖 프로젝트 개요
+고물가 시대에 학생들의 식비 부담을 덜어주기 위해 기획한 **위치 기반 가성비 맛집 탐색 및 리뷰 서비스**입니다. 
+"가성비 좋은 식당을 빨리 찾고 싶다"는 학우들의 실제 불편함을 정의하고, 이를 해결하기 위해 기획부터 데이터 수집, 개발, 배포까지 전 과정을 **1인 개발로 1주일 만에 완수**했습니다. 학우들의 실질적인 문제를 해결한 사용자 가치 중심의 서비스로 인정받아 광주일보에 단독 보도되었습니다.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## 👨‍💻 프로젝트 정보
+- **개발 인원:** 1인 (나영준)
+- **담당 역할:** 아이디어 기획, 현장 데이터 수집/검증, 프론트엔드/백엔드 개발, 서버 배포 (Full-cycle)
 
-## React Compiler
+## 🛠 기술 스택 (Tech Stack)
+- **Backend:** Java, Spring Boot, Spring Data JPA
+- **Database:** MySQL 
+- **Frontend:** React (UX 중심의 화면 흐름 및 상태 관리)
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+---
 
-## Expanding the ESLint configuration
+## 💡 핵심 문제 해결 및 기술적 성과
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+### 1. 1인 풀사이클 개발로 1주일 만에 MVP 출시 (실행력 입증)
+- **배경:** 학생들의 실질적인 불편을 빠르게 해소하기 위해 아이디어 도출 후 즉각적인 시장 검증과 출시가 필요했습니다.
+- **해결 및 성과:** 
+  - 핵심 기능(위치 기반 탐색, 리뷰 조회/작성)에 개발 우선순위를 두고 집중했습니다.
+  - 기획부터 요구사항 정의, 구현, 배포까지의 모든 과정을 단 **1주일 만에 완수**하며 기획을 곧바로 프로덕트로 만들어내는 강한 실행력을 증명했습니다.
+
+### 2. 현장 검증(발로 뛰기) 기반의 데이터 품질 확보
+- **배경:** 기존 포털 사이트의 중복되거나 부정확한 장소 정보가 사용자 신뢰도를 떨어뜨리고 탐색 비용을 높이는 원인임을 분석했습니다.
+- **해결 및 성과:** 
+  - 단순 크롤링에 의존하지 않고, 직접 현장을 방문해 데이터를 수집 및 검증하는 자체 프로세스를 구축했습니다.
+  - 실제 대학가 상권과 학생들의 니즈에 완벽히 최적화된 고품질의 장소 데이터베이스를 구축했습니다.
+
+### 3. 위치 기반 검색 쿼리 및 응답 성능 최적화
+- **배경:** '내 위치'를 중심으로 특정 반경 내의 식당을 필터링하고 정렬하는 과정에서 발생할 수 있는 데이터베이스 부하를 고려해야 했습니다.
+- **해결 및 성과:** 
+  - 위치 반경 및 필터 조건에 특화된 쿼리 구조를 설계했습니다.
+  - 빈번하게 발생하는 검색 조건에 맞춘 **인덱싱(Indexing) 전략을 수립하여 검색 응답 성능을 최적화**했습니다.
+
+### 4. 사용자 중심의 UX 재설계 및 참여 유도
+- **배경:** 잦은 화면 이동이나 복잡한 입력 폼은 모바일 환경에서 사용자의 이탈을 유발합니다.
+- **해결 및 성과:** 
+  - `지도 → 리스트 → 상세`로 이어지는 탐색 흐름을 사용자 관점에서 직관적으로 재설계했습니다.
+  - 리뷰 작성 및 조회 흐름을 단순화하여 입력 단계를 줄이고, 사용자가 자연스럽게 서비스 생태계(데이터 기여)에 참여하도록 UX를 개선했습니다.
