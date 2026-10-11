@@ -12,7 +12,7 @@
 
 ## 🛠 기술 스택 (Tech Stack)
 - **Backend:** Java, Spring Boot, Spring Data JPA
-- **Database:** MySQL 
+- **Database:** Supabase 
 - **Frontend:** React (UX 중심의 화면 흐름 및 상태 관리)
 
 ---
