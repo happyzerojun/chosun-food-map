@@ -24,7 +24,7 @@
  *   node uploadData.js
  *   npm run upload:restaurants
  *
- * 환경변수 (.env): VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY
+ * 환경변수 (.env): VITE_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY
  * (절대 코드에 하드코딩하지 마세요.)
  */
 
@@ -66,7 +66,7 @@ async function main() {
 
   if (!supabaseUrl || !supabaseKey) {
     console.error(
-      '[uploadData] 환경변수가 없습니다. 프로젝트 루트 .env 에 VITE_SUPABASE_URL 과 VITE_SUPABASE_ANON_KEY 를 설정하세요.',
+      '[uploadData] 환경변수가 없습니다. 프로젝트 루트 .env 에 VITE_SUPABASE_URL 과 SUPABASE_SERVICE_ROLE_KEY 를 설정하세요.',
     )
     process.exit(1)
   }
