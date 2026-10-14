@@ -80,7 +80,8 @@ function KakaoMapView({ onReady }) {
     setSelectedId(id)
 
     // 하루 기준 플래그 생성 (예: view_lock_2023-10-25)
-    const todayStr = new Date().toISOString().split('T')[0];
+    // toISOString()은 UTC라 한국 시간 00:00~08:59에는 '어제'가 나온다. 리뷰 제한과 같은 KST 기준으로 맞춘다 (TS-01)
+    const todayStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Seoul' }).format(new Date());
     const viewLockKey = `view_lock_${id}_${todayStr}`;
 
     // 오늘 이미 클릭한 기록이 있다면 API 호출 안 함 (방어막)
@@ -89,8 +90,13 @@ function KakaoMapView({ onReady }) {
     }
 
     try {
-      await supabase.rpc('increment_visit_count', { restaurant_id: id })
-      // 성공 시 방어막 세팅
+      // supabase-js v2는 실패해도 예외를 던지지 않고 { error }를 돌려준다.
+      // 예전 코드는 실패해도 잠금을 걸었고 catch는 실행되지 않았다 (TS-01)
+      const { error } = await supabase.rpc('increment_visit_count', { restaurant_id: id })
+      if (error) {
+        console.error('조회수 업데이트 실패:', error)
+        return
+      }
       localStorage.setItem(viewLockKey, 'true');
     } catch (err) {
       console.error('조회수 업데이트 실패:', err)
