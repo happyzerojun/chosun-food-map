@@ -143,6 +143,8 @@ npm run dev            # http://localhost:3000
 
 ## 🔭 회고와 다음 단계
 
+> 셀프 보안·코드 리뷰로 찾은 문제(조회수 UTC 날짜, 4자리 삭제 키, 하루 1회 제한의 동시성, IP 해시 pepper)와 해결 과정은 [`docs/troubleshooting.md`](docs/troubleshooting.md)에 정리했습니다.
+
 - **조회수 중복 방지가 클라이언트에만 있음** — 현재는 localStorage로 하루 1회만 RPC를 호출합니다. 리뷰처럼 서버(RPC 내부)에서 IP 해시 기준으로 막는 것이 다음 개선 과제입니다.
 - **IP 기반 제한의 한계** — 같은 와이파이를 쓰는 학생들은 같은 IP로 묶이고, 반대로 네트워크를 바꾸면 우회가 가능합니다. 사용 규모가 커지면 기기 식별 토큰이나 간편 인증을 함께 쓰는 방향을 검토하고 있습니다.
 - **DB 객체의 코드화** — `restaurants` 테이블, `restaurants_with_stats` 뷰, `increment_visit_count` 함수는 Supabase 대시보드에서 만들어 저장소에 SQL이 없습니다. 마이그레이션 파일로 버전 관리할 예정입니다.
