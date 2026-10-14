@@ -8,6 +8,7 @@
 | TS-02 | 2026-10-14 | 보안 | 리뷰 삭제 비밀번호가 숫자 4자리 → 무차별 대입으로 남의 리뷰 삭제 가능 | 해결 (기존 리뷰는 남은 일) |
 | TS-03 | 2026-10-14 | 동시성 | "하루 1회" 리뷰 제한이 조회 후 저장 2단계 → 동시 요청 두 건 통과 | 해결 (SQL 마이그레이션 실행 필요) |
 | TS-04 | 2026-10-14 | 개인정보 | IP 해시 pepper가 선택 사항 → pepper 없으면 IP 복원 가능 | 경고 추가 |
+| TS-05 | 2026-10-14 | 빌드 | CI에서 `npm ci` 실패: lock 파일이 package.json과 어긋남 | 임시 대응 |
 
 ---
 
@@ -34,3 +35,10 @@
 ### TS-04 pepper 없는 IP 해시
 - **위험:** `REVIEW_IP_PEPPER`가 없으면 SHA-256(IP)만 저장돼, IPv4 전체를 미리 해시해 대조하면 IP를 복원할 수 있어요.
 - **조치:** 환경변수가 없으면 서버 로그에 경고를 남겨요. 운영 환경(Vercel)에 pepper가 설정돼 있는지 확인이 필요해요.
+
+### TS-05 CI에서 `npm ci` 실패
+- **증상:** `npm ci can only install packages when your package.json and package-lock.json ... are in sync`, `Missing: @emnapi/core@1.11.3 from lock file`.
+- **원인:** 의존성을 바꾼 뒤 `package-lock.json`을 함께 커밋하지 않음. Vercel은 `npm install`을 써서 드러나지 않았어요.
+- **임시 대응:** CI는 `npm install`로 설치. 
+- **해결 예정:** 로컬에서 `npm install` 후 갱신된 `package-lock.json`을 커밋하고 CI를 `npm ci`로 되돌려요(같은 버전 재현을 보장하기 위해).
+
