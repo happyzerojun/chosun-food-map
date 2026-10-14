@@ -14,6 +14,7 @@ jobs:
         with:
           node-version: '22'
           cache: npm
-      - run: npm ci
+      # package-lock.json이 package.json과 어긋나 npm ci가 실패한다 (TS-05). lock 파일 갱신 전까지 npm install 사용
+      - run: npm install --no-audit --no-fund
       - run: node --check api/reviews.js
       - run: npm run build
