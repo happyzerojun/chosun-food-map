@@ -138,8 +138,12 @@ export function RestaurantReviews({ restaurantId, restaurantName}) {
     setFormError(null)
     setSubmitting(true)
     try {
-      // 백그라운드 랜덤 비밀번호 생성
-      const autoPassword = Math.floor(1000 + Math.random() * 9000).toString();
+      // 삭제용 키 자동 생성: 예전 4자리 숫자(1만 가지)는 리뷰 ID만 알면 무차별 대입으로 지울 수 있었다.
+      // 사용자가 입력하지 않으므로 길이 제약이 없다 → 128비트 랜덤 토큰 사용 (TS-02)
+      const autoPassword =
+        typeof crypto !== 'undefined' && crypto.randomUUID
+          ? crypto.randomUUID()
+          : Array.from(crypto.getRandomValues(new Uint8Array(16)), (b) => b.toString(16).padStart(2, '0')).join('');
 
       const res = await fetch(apiUrl, {
         method: 'POST',
