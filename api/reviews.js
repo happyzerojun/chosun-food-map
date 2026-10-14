@@ -23,6 +23,11 @@ function getServiceKey() {
   return process.env.SUPABASE_SERVICE_ROLE_KEY || ''
 }
 
+// pepper 없이 SHA-256만 쓰면 IPv4 전체(약 43억 개)를 미리 해시해 대조할 수 있어 IP가 사실상 복원된다 (TS-04)
+if (!process.env.REVIEW_IP_PEPPER) {
+  console.warn('[api/reviews] REVIEW_IP_PEPPER가 설정되지 않았습니다. IP 해시가 사전 대입에 취약합니다.')
+}
+
 function hashIp(ip) {
   const h = createHash('sha256')
   h.update(String(ip || 'unknown'))
@@ -160,8 +165,9 @@ export default async function handler(req, res) {
       if (!nickname || nickname.length > 40) {
         return json(res, 400, { error: '닉네임은 1~40자로 입력해 주세요.' })
       }
-      if (typeof password !== 'string' || !/^\d{4}$/.test(password)) {
-        return json(res, 400, { error: '비밀번호는 숫자 4자리여야 합니다.' })
+      // 새 클라이언트는 32~64자 랜덤 토큰을 보낸다. 예전 4자리 숫자는 무차별 대입에 약해 더 이상 받지 않는다 (TS-02)
+      if (typeof password !== 'string' || !/^[A-Za-z0-9-]{32,64}$/.test(password)) {
+        return json(res, 400, { error: '삭제 키 형식이 올바르지 않습니다. 페이지를 새로고침한 뒤 다시 시도해 주세요.' })
       }
       const rating = Number(ratingRaw)
       if (!Number.isInteger(rating) || rating < 1 || rating > 5) {
@@ -225,6 +231,12 @@ export default async function handler(req, res) {
         .single()
 
       if (insertError) {
+        // 동시 요청 두 건이 count 검사를 함께 통과해도, DB 유니크 인덱스(하루 1회)가 두 번째를 막는다 (TS-03)
+        if (insertError.code === '23505') {
+          return json(res, 429, {
+            error: '같은 식당에는 하루에 한 번만 리뷰를 남길 수 있어요. 내일 다시 시도해 주세요.',
+          })
+        }
         console.error('[api/reviews] insert', insertError)
         return json(res, 500, { error: '리뷰 저장에 실패했습니다.' })
       }
