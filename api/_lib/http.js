@@ -65,17 +65,32 @@ export function isJsonContentType(req) {
   return typeof ct === 'string' && /^application\/json\s*(;|$)/i.test(ct.trim())
 }
 
+function firstHeaderValue(value) {
+  if (Array.isArray(value)) value = value[0]
+  if (typeof value !== 'string') return ''
+  return value.split(',')[0].trim()
+}
+
+/** `::ffff:1.2.3.4` 같은 IPv4-mapped IPv6를 IPv4로 맞춰 같은 사람이 두 해시로 갈리지 않게 한다 */
+function normalizeIp(ip) {
+  const m = /^::ffff:(\d{1,3}(?:\.\d{1,3}){3})$/i.exec(ip)
+  return m ? m[1] : ip
+}
+
 /**
- * 클라이언트 IP. X-Forwarded-For 첫 값 → x-real-ip → 소켓 주소
+ * 클라이언트 IP.
+ * 예전에는 X-Forwarded-For 첫 값을 그대로 믿어, 클라이언트가 헤더를 넣으면 IP를 마음대로 바꿔 하루 1회 제한을 우회할 수 있었다 (TS-07).
+ * Vercel 엣지가 직접 설정하는 x-vercel-forwarded-for → x-real-ip 순으로 쓰고, 둘 다 없으면(로컬) 소켓 주소를 쓴다.
+ * X-Forwarded-For는 클라이언트가 보낸 값이 섞일 수 있어 읽지 않는다.
  */
 export function getClientIp(req) {
-  const xf = req.headers?.['x-forwarded-for']
-  if (typeof xf === 'string' && xf.length > 0) {
-    return xf.split(',')[0].trim()
-  }
-  const real = req.headers?.['x-real-ip']
-  if (typeof real === 'string' && real.length > 0) return real.trim()
-  return req.socket?.remoteAddress || 'unknown'
+  const candidates = [
+    firstHeaderValue(req.headers?.['x-vercel-forwarded-for']),
+    firstHeaderValue(req.headers?.['x-real-ip']),
+    req.socket?.remoteAddress || '',
+  ]
+  const ip = candidates.find((v) => v.length > 0)
+  return ip ? normalizeIp(ip) : 'unknown'
 }
 
 // pepper 없이 SHA-256만 쓰면 IPv4 전체(약 43억 개)를 미리 해시해 대조할 수 있어 IP가 사실상 복원된다 (TS-04)
