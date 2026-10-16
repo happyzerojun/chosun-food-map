@@ -55,7 +55,7 @@ function mapRestaurantToRow(r) {
       note: r.note ?? null,
     }
   } catch (e) {
-    throw new Error(`행 매핑 실패 (${r?.id}): ${e.message}`)
+    throw new Error(`행 매핑 실패 (${r?.id}): ${e.message}`, { cause: e })
   }
 }
 

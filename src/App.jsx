@@ -21,7 +21,8 @@ function KakaoMapView({ onReady }) {
   const [restaurantsData, setRestaurantsData] = useState([])
   const [isDataLoading, setIsDataLoading] = useState(true)
   const [selectedId, setSelectedId] = useState(null)
-  const [hoveredId, setHoveredId] = useState(null)
+  // hover 강조는 아직 연결되지 않아 setter를 쓰지 않는다(값은 항상 null). lint no-unused-vars 대응
+  const [hoveredId] = useState(null)
   const [sortBy, setSortBy] = useState('default')
   const [filterTag, setFilterTag] = useState('all')
   const [isExpanded, setIsExpanded] = useState(false)
