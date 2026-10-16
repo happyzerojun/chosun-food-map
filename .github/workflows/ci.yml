@@ -17,7 +17,6 @@ jobs:
       # package-lock.json이 package.json과 어긋나 npm ci가 실패한다 (TS-05). lock 파일 갱신 전까지 npm install 사용
       - run: npm install --no-audit --no-fund
       - run: node --check api/reviews.js
-      # npm run lint는 아직 넣지 않는다: 기존 React 컴포넌트가 eslint-plugin-react-hooks v7 규칙(effect 안 setState 등)에 걸려
-      # 컴포넌트 리팩터링이 먼저 필요하다. 정리 후 이 줄 아래에 - run: npm run lint 추가
+      - run: npm run lint
       - run: npm test
       - run: npm run build
