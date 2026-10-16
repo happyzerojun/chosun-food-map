@@ -8,6 +8,7 @@
     "build": "vite build",
     "build:vercel": "CI=false vite build",
     "lint": "eslint .",
+    "test": "node --test \"test/**/*.test.js\"",
     "preview": "vite preview",
     "upload:restaurants": "node uploadData.js"
   },
