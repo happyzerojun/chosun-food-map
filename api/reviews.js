@@ -1,7 +1,7 @@
 /**
  * Vercel Serverless: /api/reviews
  * 환경변수: VITE_SUPABASE_URL (또는 SUPABASE_URL), SUPABASE_SERVICE_ROLE_KEY
- * 선택: REVIEW_IP_PEPPER (IP 해시에 추가 솔트)
+ * 운영 필수(없어도 동작은 함): REVIEW_IP_PEPPER (IP 해시에 섞는 비밀 값, 없으면 경고 로그)
  * 선택: ALLOWED_ORIGIN (CORS 추가 허용 출처, 쉼표 구분. 운영 도메인·localhost:3000은 기본 허용)
  *
  * GET    ?restaurant_id=  — 해당 식당 리뷰 목록 (password_hash 제외)
@@ -30,9 +30,11 @@ function getServiceKey() {
   return process.env.SUPABASE_SERVICE_ROLE_KEY || ''
 }
 
-// pepper 없이 SHA-256만 쓰면 IPv4 전체(약 43억 개)를 미리 해시해 대조할 수 있어 IP가 사실상 복원된다 (TS-04)
+// pepper가 없어도 리뷰 작성은 막지 않는다(운영 중단 방지). 대신 콜드 스타트마다 한 번 경고한다 (TS-04)
+// 운영(VERCEL_ENV=production)에서는 error 레벨로 남겨 Vercel 로그에서 눈에 띄게 한다
 if (!process.env.REVIEW_IP_PEPPER) {
-  console.warn(PEPPER_MISSING_WARNING)
+  const log = process.env.VERCEL_ENV === 'production' ? console.error : console.warn
+  log(PEPPER_MISSING_WARNING)
 }
 
 function json(res, status, body) {

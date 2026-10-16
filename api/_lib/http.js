@@ -93,7 +93,10 @@ export function getClientIp(req) {
   return ip ? normalizeIp(ip) : 'unknown'
 }
 
-// pepper 없이 SHA-256만 쓰면 IPv4 전체(약 43억 개)를 미리 해시해 대조할 수 있어 IP가 사실상 복원된다 (TS-04)
+/**
+ * IP 해시. pepper가 없어도 동작은 유지한다(운영 중단 방지). 대신 서버 로그에 경고를 남긴다 (TS-04).
+ * pepper 없이 SHA-256만 쓰면 IPv4 전체(약 43억 개)를 미리 해시해 대조할 수 있어 IP가 사실상 복원된다.
+ */
 export function hashIp(ip, pepper = process.env.REVIEW_IP_PEPPER) {
   const h = createHash('sha256')
   h.update(String(ip || 'unknown'))
@@ -105,7 +108,10 @@ export function hashIp(ip, pepper = process.env.REVIEW_IP_PEPPER) {
 }
 
 export const PEPPER_MISSING_WARNING =
-  '[api/reviews] REVIEW_IP_PEPPER가 설정되지 않았습니다. IP 해시가 사전 대입에 취약합니다.'
+  '[api/reviews][보안 경고] REVIEW_IP_PEPPER가 설정되지 않아 IP를 pepper 없이 SHA-256으로만 해시합니다. ' +
+  '이 해시는 IPv4 전체를 대입하면 원래 IP로 되돌릴 수 있습니다. ' +
+  '리뷰 작성은 계속 동작하지만, Vercel → Settings → Environment Variables에 REVIEW_IP_PEPPER(32바이트 이상 랜덤 값)를 ' +
+  'Production·Preview에 추가하고 재배포하세요. 추가·변경하면 해시가 바뀌어 그날의 하루 1회 제한이 한 번 초기화됩니다.'
 
 // en-CA 로캘은 yyyy-MM-dd 형식. 프론트(App.jsx 조회수 잠금)와 같은 방식이라 서버·클라이언트 날짜가 어긋나지 않는다
 const KST_YMD = new Intl.DateTimeFormat('en-CA', {
