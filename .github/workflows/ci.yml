@@ -17,6 +17,7 @@ jobs:
       # package-lock.json이 package.json과 어긋나 npm ci가 실패한다 (TS-05). lock 파일 갱신 전까지 npm install 사용
       - run: npm install --no-audit --no-fund
       - run: node --check api/reviews.js
-      - run: npm run lint
       - run: npm test
       - run: npm run build
+      # lint는 마지막에 둔다: lint가 실패해도 test·build 결과를 함께 확인하기 위해(실패하면 job은 그대로 실패)
+      - run: npm run lint
