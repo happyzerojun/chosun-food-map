@@ -2,6 +2,7 @@
  * Vercel Serverless: /api/reviews
  * 환경변수: VITE_SUPABASE_URL (또는 SUPABASE_URL), SUPABASE_SERVICE_ROLE_KEY
  * 선택: REVIEW_IP_PEPPER (IP 해시에 추가 솔트)
+ * 선택: ALLOWED_ORIGIN (CORS 추가 허용 출처, 쉼표 구분. 운영 도메인·localhost:3000은 기본 허용)
  *
  * GET    ?restaurant_id=  — 해당 식당 리뷰 목록 (password_hash 제외)
  * POST   JSON body — 리뷰 작성
@@ -10,10 +11,16 @@
 
 import { createClient } from '@supabase/supabase-js'
 import bcrypt from 'bcryptjs'
-import { createHash, randomUUID } from 'node:crypto'
-import { formatInTimeZone } from 'date-fns-tz'
-
-const TZ_SEOUL = 'Asia/Seoul'
+import { randomUUID } from 'node:crypto'
+import {
+  applyCors,
+  getClientIp,
+  hashIp,
+  isJsonContentType,
+  PEPPER_MISSING_WARNING,
+  startOfTodayKstIso,
+  todayKstYmd,
+} from './_lib/http.js'
 
 function getSupabaseUrl() {
   return process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || ''
@@ -25,45 +32,7 @@ function getServiceKey() {
 
 // pepper 없이 SHA-256만 쓰면 IPv4 전체(약 43억 개)를 미리 해시해 대조할 수 있어 IP가 사실상 복원된다 (TS-04)
 if (!process.env.REVIEW_IP_PEPPER) {
-  console.warn('[api/reviews] REVIEW_IP_PEPPER가 설정되지 않았습니다. IP 해시가 사전 대입에 취약합니다.')
-}
-
-function hashIp(ip) {
-  const h = createHash('sha256')
-  h.update(String(ip || 'unknown'))
-  if (process.env.REVIEW_IP_PEPPER) {
-    h.update('|')
-    h.update(process.env.REVIEW_IP_PEPPER)
-  }
-  return h.digest('hex')
-}
-
-function getClientIp(req) {
-  const xf = req.headers['x-forwarded-for']
-  if (typeof xf === 'string' && xf.length > 0) {
-    return xf.split(',')[0].trim()
-  }
-  const real = req.headers['x-real-ip']
-  if (typeof real === 'string' && real.length > 0) return real.trim()
-  return req.socket?.remoteAddress || 'unknown'
-}
-
-/** KST(UTC+9, 서머타임 없음) 기준 해당 날짜 00:00 의 UTC instant */
-function startOfTodayKstIso() {
-  const ymd = formatInTimeZone(new Date(), TZ_SEOUL, 'yyyy-MM-dd')
-  const [y, m, d] = ymd.split('-').map(Number)
-  return new Date(Date.UTC(y, m - 1, d, -9, 0, 0, 0)).toISOString()
-}
-
-/** KST 기준 오늘 날짜 문자열 (localStorage 키용) */
-function todayKstYmd() {
-  return formatInTimeZone(new Date(), TZ_SEOUL, 'yyyy-MM-dd')
-}
-
-function setCors(res) {
-  res.setHeader('Access-Control-Allow-Origin', '*')
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS')
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type')
+  console.warn(PEPPER_MISSING_WARNING)
 }
 
 function json(res, status, body) {
@@ -94,11 +63,17 @@ async function readJsonBody(req) {
 }
 
 export default async function handler(req, res) {
-  setCors(res)
+  const originAllowed = applyCors(req, res)
 
   if (req.method === 'OPTIONS') {
-    res.statusCode = 204
+    // 허용하지 않은 출처의 preflight는 CORS 헤더 없이 403 → 브라우저가 본 요청을 보내지 않는다 (TS-06)
+    res.statusCode = originAllowed ? 204 : 403
     return res.end()
+  }
+
+  // 쓰기 요청은 JSON만 받는다. text/plain 등 단순 요청은 preflight 없이 다른 사이트에서도 보낼 수 있기 때문 (TS-06)
+  if ((req.method === 'POST' || req.method === 'DELETE') && !isJsonContentType(req)) {
+    return json(res, 415, { error: 'Content-Type: application/json 요청만 받습니다.' })
   }
 
   const supabaseUrl = getSupabaseUrl()
