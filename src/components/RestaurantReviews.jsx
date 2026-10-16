@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { formatInTimeZone } from 'date-fns-tz'
 import { getReviewsApiUrl } from '../lib/reviewsApi.js'
@@ -44,6 +44,23 @@ function saveMyReview(reviewId, password) {
   localStorage.setItem(MY_REVIEWS_KEY, JSON.stringify(myReviews));
 }
 
+// 리뷰 목록 조회. state를 건드리지 않는 순수 비동기 함수라 effect에서 결과만 받아 반영한다
+async function fetchReviews(apiUrl, restaurantId) {
+  try {
+    const res = await fetch(`${apiUrl}?restaurant_id=${encodeURIComponent(restaurantId)}`, {
+      method: 'GET',
+      headers: { Accept: 'application/json' },
+    })
+    const payload = await res.json().catch(() => ({}))
+    if (!res.ok) {
+      throw new Error(payload.error || '리뷰를 불러오지 못했습니다.')
+    }
+    return { reviews: Array.isArray(payload.reviews) ? payload.reviews : [], error: null }
+  } catch (e) {
+    return { reviews: [], error: e.message || '리뷰를 불러오지 못했습니다.' }
+  }
+}
+
 // 🚀 그룹화된 태그 프리셋 (카테고리별 분류)
 const TAG_CATEGORIES = [
   {
@@ -62,9 +79,16 @@ const TAG_CATEGORIES = [
 
 export function RestaurantReviews({ restaurantId, restaurantName}) {
   const apiUrl = useMemo(() => getReviewsApiUrl(), [])
-  const [reviews, setReviews] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(null)
+  // 작성·삭제 후 다시 불러올 때 올리는 번호. (식당 id, 번호)가 바뀌면 effect가 다시 조회한다
+  const [reloadCount, setReloadCount] = useState(0)
+  const requestKey = `${restaurantId}#${reloadCount}`
+  // 마지막으로 받은 결과와 그 결과가 어느 요청(requestKey)의 것인지
+  const [loaded, setLoaded] = useState({ requestKey: null, reviews: [], error: null })
+  // loading은 따로 state로 두지 않고 "지금 요청의 결과가 아직 없음"으로 계산한다.
+  // effect 안에서 setLoading(true)를 동기로 부르면 렌더가 연쇄로 일어난다 (react-hooks/set-state-in-effect)
+  const loading = loaded.requestKey !== requestKey
+  const reviews = loaded.reviews
+  const error = loaded.error
 
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [submitting, setSubmitting] = useState(false)
@@ -90,42 +114,30 @@ export function RestaurantReviews({ restaurantId, restaurantName}) {
     };
   }, [reviews]);
 
-  const loadReviews = useCallback(async () => {
-    setLoading(true)
-    setError(null)
-    try {
-      const res = await fetch(`${apiUrl}?restaurant_id=${encodeURIComponent(restaurantId)}`, {
-        method: 'GET',
-        headers: { Accept: 'application/json' },
-      })
-      const payload = await res.json().catch(() => ({}))
-      if (!res.ok) {
-        throw new Error(payload.error || '리뷰를 불러오지 못했습니다.')
-      }
-      setReviews(Array.isArray(payload.reviews) ? payload.reviews : [])
-    } catch (e) {
-      setError(e.message || '리뷰를 불러오지 못했습니다.')
-      setReviews([])
-    } finally {
-      setLoading(false)
-    }
-  }, [apiUrl, restaurantId])
-
   useEffect(() => {
-    loadReviews()
-  }, [loadReviews])
-
-  // 🚀 모달 열릴 때 랜덤 닉네임 세팅
-  useEffect(() => {
-    if (isModalOpen) {
-      const randomId = Math.floor(1000 + Math.random() * 9000);
-      setNickname(`조대미식가_${randomId}`);
-      setContent('');
-      setSelectedTags([]);
-      setRating(5);
-      setFormError(null);
+    // 식당을 빠르게 바꿨을 때 늦게 도착한 이전 식당의 응답이 덮어쓰지 않도록 무시 플래그를 둔다
+    let ignore = false
+    fetchReviews(apiUrl, restaurantId).then((result) => {
+      if (!ignore) setLoaded({ requestKey, ...result })
+    })
+    return () => {
+      ignore = true
     }
-  }, [isModalOpen]);
+  }, [apiUrl, restaurantId, requestKey])
+
+  const reloadReviews = () => setReloadCount((n) => n + 1)
+
+  // 🚀 모달 열 때 폼 초기화 + 랜덤 닉네임 세팅.
+  // 예전에는 isModalOpen을 보는 effect에서 setState를 했는데, "여는 동작"에 딸린 일이라 이벤트 핸들러로 옮겼다
+  const openModal = () => {
+    const randomId = Math.floor(1000 + Math.random() * 9000);
+    setNickname(`조대미식가_${randomId}`);
+    setContent('');
+    setSelectedTags([]);
+    setRating(5);
+    setFormError(null);
+    setIsModalOpen(true);
+  };
 
   const toggleTag = (tag) => {
     setSelectedTags(prev =>
@@ -138,8 +150,12 @@ export function RestaurantReviews({ restaurantId, restaurantName}) {
     setFormError(null)
     setSubmitting(true)
     try {
-      // 백그라운드 랜덤 비밀번호 생성
-      const autoPassword = Math.floor(1000 + Math.random() * 9000).toString();
+      // 삭제용 키 자동 생성: 예전 4자리 숫자(1만 가지)는 리뷰 ID만 알면 무차별 대입으로 지울 수 있었다.
+      // 사용자가 입력하지 않으므로 길이 제약이 없다 → 128비트 랜덤 토큰 사용 (TS-02)
+      const autoPassword =
+        typeof crypto !== 'undefined' && crypto.randomUUID
+          ? crypto.randomUUID()
+          : Array.from(crypto.getRandomValues(new Uint8Array(16)), (b) => b.toString(16).padStart(2, '0')).join('');
 
       const res = await fetch(apiUrl, {
         method: 'POST',
@@ -172,7 +188,7 @@ export function RestaurantReviews({ restaurantId, restaurantName}) {
       }
 
       setIsModalOpen(false)
-      await loadReviews()
+      reloadReviews()
     } catch (err) {
       setFormError(err.message || '리뷰 등록에 실패했습니다.')
     } finally {
@@ -203,7 +219,7 @@ export function RestaurantReviews({ restaurantId, restaurantName}) {
       delete updatedMyReviews[reviewId];
       localStorage.setItem(MY_REVIEWS_KEY, JSON.stringify(updatedMyReviews));
 
-      await loadReviews()
+      reloadReviews()
     } catch (err) {
       alert(err.message || '삭제에 실패했습니다.')
     }
@@ -224,7 +240,7 @@ export function RestaurantReviews({ restaurantId, restaurantName}) {
 
         {!lockedForToday && (
           <button
-            onClick={() => setIsModalOpen(true)}
+            onClick={openModal}
             className="rounded-full bg-violet-50 px-3 py-1.5 text-[11px] font-bold text-violet-700 hover:bg-violet-100 transition-colors"
           >
             리뷰쓰기

@@ -1,7 +1,8 @@
 /**
  * Vercel Serverless: /api/reviews
  * 환경변수: VITE_SUPABASE_URL (또는 SUPABASE_URL), SUPABASE_SERVICE_ROLE_KEY
- * 선택: REVIEW_IP_PEPPER (IP 해시에 추가 솔트)
+ * 운영 필수(없어도 동작은 함): REVIEW_IP_PEPPER (IP 해시에 섞는 비밀 값, 없으면 경고 로그)
+ * 선택: ALLOWED_ORIGIN (CORS 추가 허용 출처, 쉼표 구분. 운영 도메인·localhost:3000은 기본 허용)
  *
  * GET    ?restaurant_id=  — 해당 식당 리뷰 목록 (password_hash 제외)
  * POST   JSON body — 리뷰 작성
@@ -10,10 +11,16 @@
 
 import { createClient } from '@supabase/supabase-js'
 import bcrypt from 'bcryptjs'
-import { createHash, randomUUID } from 'node:crypto'
-import { formatInTimeZone } from 'date-fns-tz'
-
-const TZ_SEOUL = 'Asia/Seoul'
+import { randomUUID } from 'node:crypto'
+import {
+  applyCors,
+  getClientIp,
+  hashIp,
+  isJsonContentType,
+  PEPPER_MISSING_WARNING,
+  startOfTodayKstIso,
+  todayKstYmd,
+} from './_lib/http.js'
 
 function getSupabaseUrl() {
   return process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || ''
@@ -23,42 +30,11 @@ function getServiceKey() {
   return process.env.SUPABASE_SERVICE_ROLE_KEY || ''
 }
 
-function hashIp(ip) {
-  const h = createHash('sha256')
-  h.update(String(ip || 'unknown'))
-  if (process.env.REVIEW_IP_PEPPER) {
-    h.update('|')
-    h.update(process.env.REVIEW_IP_PEPPER)
-  }
-  return h.digest('hex')
-}
-
-function getClientIp(req) {
-  const xf = req.headers['x-forwarded-for']
-  if (typeof xf === 'string' && xf.length > 0) {
-    return xf.split(',')[0].trim()
-  }
-  const real = req.headers['x-real-ip']
-  if (typeof real === 'string' && real.length > 0) return real.trim()
-  return req.socket?.remoteAddress || 'unknown'
-}
-
-/** KST(UTC+9, 서머타임 없음) 기준 해당 날짜 00:00 의 UTC instant */
-function startOfTodayKstIso() {
-  const ymd = formatInTimeZone(new Date(), TZ_SEOUL, 'yyyy-MM-dd')
-  const [y, m, d] = ymd.split('-').map(Number)
-  return new Date(Date.UTC(y, m - 1, d, -9, 0, 0, 0)).toISOString()
-}
-
-/** KST 기준 오늘 날짜 문자열 (localStorage 키용) */
-function todayKstYmd() {
-  return formatInTimeZone(new Date(), TZ_SEOUL, 'yyyy-MM-dd')
-}
-
-function setCors(res) {
-  res.setHeader('Access-Control-Allow-Origin', '*')
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS')
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type')
+// pepper가 없어도 리뷰 작성은 막지 않는다(운영 중단 방지). 대신 콜드 스타트마다 한 번 경고한다 (TS-04)
+// 운영(VERCEL_ENV=production)에서는 error 레벨로 남겨 Vercel 로그에서 눈에 띄게 한다
+if (!process.env.REVIEW_IP_PEPPER) {
+  const log = process.env.VERCEL_ENV === 'production' ? console.error : console.warn
+  log(PEPPER_MISSING_WARNING)
 }
 
 function json(res, status, body) {
@@ -89,11 +65,17 @@ async function readJsonBody(req) {
 }
 
 export default async function handler(req, res) {
-  setCors(res)
+  const originAllowed = applyCors(req, res)
 
   if (req.method === 'OPTIONS') {
-    res.statusCode = 204
+    // 허용하지 않은 출처의 preflight는 CORS 헤더 없이 403 → 브라우저가 본 요청을 보내지 않는다 (TS-06)
+    res.statusCode = originAllowed ? 204 : 403
     return res.end()
+  }
+
+  // 쓰기 요청은 JSON만 받는다. text/plain 등 단순 요청은 preflight 없이 다른 사이트에서도 보낼 수 있기 때문 (TS-06)
+  if ((req.method === 'POST' || req.method === 'DELETE') && !isJsonContentType(req)) {
+    return json(res, 415, { error: 'Content-Type: application/json 요청만 받습니다.' })
   }
 
   const supabaseUrl = getSupabaseUrl()
@@ -160,8 +142,9 @@ export default async function handler(req, res) {
       if (!nickname || nickname.length > 40) {
         return json(res, 400, { error: '닉네임은 1~40자로 입력해 주세요.' })
       }
-      if (typeof password !== 'string' || !/^\d{4}$/.test(password)) {
-        return json(res, 400, { error: '비밀번호는 숫자 4자리여야 합니다.' })
+      // 새 클라이언트는 32~64자 랜덤 토큰을 보낸다. 예전 4자리 숫자는 무차별 대입에 약해 더 이상 받지 않는다 (TS-02)
+      if (typeof password !== 'string' || !/^[A-Za-z0-9-]{32,64}$/.test(password)) {
+        return json(res, 400, { error: '삭제 키 형식이 올바르지 않습니다. 페이지를 새로고침한 뒤 다시 시도해 주세요.' })
       }
       const rating = Number(ratingRaw)
       if (!Number.isInteger(rating) || rating < 1 || rating > 5) {
@@ -225,6 +208,12 @@ export default async function handler(req, res) {
         .single()
 
       if (insertError) {
+        // 동시 요청 두 건이 count 검사를 함께 통과해도, DB 유니크 인덱스(하루 1회)가 두 번째를 막는다 (TS-03)
+        if (insertError.code === '23505') {
+          return json(res, 429, {
+            error: '같은 식당에는 하루에 한 번만 리뷰를 남길 수 있어요. 내일 다시 시도해 주세요.',
+          })
+        }
         console.error('[api/reviews] insert', insertError)
         return json(res, 500, { error: '리뷰 저장에 실패했습니다.' })
       }

@@ -15,10 +15,9 @@
  *   note text,
  *   created_at timestamptz default now()
  * );
- * alter table public.restaurants enable row level security;
- * -- 개발용: anon으로 insert 허용 (프로덕션에서는 service role 또는 정책 조정 권장)
- * create policy "allow insert for anon migration" on public.restaurants
- *   for insert to anon with check (true);
+ * RLS·권한은 supabase/migration-2026-10-16-rls-anon-read-only.sql 로 설정합니다(anon은 SELECT만).
+ * 이 스크립트는 service role 키로 실행하므로 anon insert 정책이 필요 없습니다.
+ * (예전 주석의 "anon insert 허용" 정책은 공개 키로 누구나 식당을 추가할 수 있어 위 마이그레이션에서 제거합니다)
  *
  * 실행:
  *   node uploadData.js
@@ -56,7 +55,7 @@ function mapRestaurantToRow(r) {
       note: r.note ?? null,
     }
   } catch (e) {
-    throw new Error(`행 매핑 실패 (${r?.id}): ${e.message}`)
+    throw new Error(`행 매핑 실패 (${r?.id}): ${e.message}`, { cause: e })
   }
 }
 
