@@ -20,7 +20,7 @@ export default defineConfig([
   },
   {
     // Node에서 실행하는 스크립트·테스트·설정 파일
-    files: ['uploadData.js', 'test/**/*.js', '*.config.js'],
+    files: ['uploadData.js', 'test/**/*.js', 'scripts/**/*.mjs', '*.config.js'],
     languageOptions: {
       globals: globals.node,
     },

@@ -20,4 +20,10 @@ jobs:
       - run: npm test
       - run: npm run build
       # lint는 마지막에 둔다: lint가 실패해도 test·build 결과를 함께 확인하기 위해(실패하면 job은 그대로 실패)
-      - run: npm run lint
+      # react-hooks v7의 여러 줄 메시지는 기본 problem matcher가 못 잡아, JSON 결과를 PR 주석으로 변환한다.
+      # eslint 종료 코드는 무시하지만, 변환 스크립트가 오류 1개 이상(또는 결과 파일 없음)이면 exit 1 → lint를 건너뛰지 않음
+      - name: Lint
+        run: |
+          rm -f eslint.json
+          npx eslint . -f json -o eslint.json || true
+          node scripts/eslint-annotate.mjs eslint.json
