@@ -167,4 +167,4 @@ Supabase SQL과 Vercel 환경변수는 저장소 밖이라 직접 적용해야 �
 - **IP 기반 제한의 한계** — 같은 와이파이를 쓰는 학생들은 같은 IP로 묶이고, 반대로 네트워크를 바꾸면 우회가 가능합니다. 사용 규모가 커지면 기기 식별 토큰이나 간편 인증을 함께 쓰는 방향을 검토하고 있습니다.
 - **DB 객체의 코드화** — `restaurants` 테이블, `restaurants_with_stats` 뷰, `increment_visit_count` 함수는 Supabase 대시보드에서 만들어 저장소에 SQL이 없습니다. 마이그레이션 파일로 버전 관리할 예정입니다.
 - **테스트** — CORS·IP 식별·KST 날짜 유틸과 핸들러 사전 검사는 `npm test`(node:test)로 검증합니다. 다음은 Supabase를 대역으로 바꾼 작성·삭제 흐름 테스트입니다.
-- **lint 정리** — 기존 컴포넌트가 `eslint-plugin-react-hooks` v7 규칙(effect 안 동기 setState 등)에 걸려 CI의 `npm run lint`가 실패합니다. 컴포넌트 리팩터링이 필요합니다.
+- **CI** — PR마다 API 문법 확인, `npm test`, `npm run build`, lint(오류를 PR 주석으로 표시)를 실행합니다.

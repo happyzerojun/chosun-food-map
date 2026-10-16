@@ -12,6 +12,7 @@
 | TS-06 | 2026-10-16 | 보안 | 리뷰 API CORS가 `*` → 아무 사이트에서나 방문자 브라우저로 호출 | 해결 |
 | TS-07 | 2026-10-16 | 보안 | `X-Forwarded-For` 첫 값을 IP로 신뢰 → 헤더 위조로 하루 1회 제한 우회 | 해결 |
 | TS-08 | 2026-10-16 | 보안 | Supabase RLS 미적용 → 공개 anon 키로 `password_hash` 조회·데이터 수정 가능 | 해결 (SQL 마이그레이션 실행 필요) |
+| TS-09 | 2026-10-16 | 빌드/React | CI lint 실패: effect 안 동기 setState (react-hooks v7), 실패 원인이 PR에 안 보임 | 해결 |
 
 ---
 
@@ -75,3 +76,14 @@
   - `increment_visit_count`가 SECURITY INVOKER면 SECURITY DEFINER + `search_path` 고정으로 변경. anon의 UPDATE 권한을 회수하면 조회수 RPC가 막히기 때문이에요.
 - **확인한 것:** 서버리스 API·`uploadData.js`는 service role(RLS 우회)이라 영향 없음. 로컬 PostgreSQL 16에 Supabase 역할(anon/authenticated/service_role)을 흉내 낸 스키마로 적용해, anon 읽기(뷰, 공개 컬럼)·RPC 성공, 민감 컬럼·쓰기 차단, service role 쓰기 성공, `restaurants_with_stats` 뷰가 security_invoker여도 동작함을 확인했어요.
 - **남은 일:** `restaurants`·뷰·RPC 정의가 저장소에 없어 운영 DB와 다를 수 있어요. 파일 상단 "0단계" 쿼리로 먼저 확인하고 실행하세요. 조회수 RPC는 여전히 공개 키로 직접 부를 수 있어요(TS-01 남은 일).
+
+### TS-09 CI lint 실패: effect 안 동기 setState
+- **증상:** CI에 `npm run lint`를 넣자 실패했는데 PR 화면에 원인이 표시되지 않음.
+- **원인:**
+  - `eslint-plugin-react-hooks` v7의 `set-state-in-effect` 규칙. `RestaurantReviews.jsx`에서 (1) 리뷰 조회 effect가 `setLoading(true)`·`setError(null)`을 동기로 호출, (2) `isModalOpen`을 보는 effect에서 폼 state를 초기화. effect → setState → 다시 렌더가 연쇄로 일어나는 패턴.
+  - 이 규칙의 메시지는 여러 줄이라 `setup-node`의 기본 problem matcher가 주석으로 만들지 못함.
+- **해결:**
+  - 조회: `loading`을 state에서 빼고 "현재 요청 키(`식당id#재조회번호`)의 결과가 아직 없음"으로 렌더 중 계산. 조회는 state를 건드리지 않는 `fetchReviews()`로 분리하고 effect는 비동기 결과만 반영. 작성·삭제 후 재조회는 핸들러에서 번호를 올림. `ignore` 플래그로 늦게 온 이전 식당 응답이 덮어쓰던 경쟁 상태도 함께 막음.
+  - 모달: 폼 초기화를 effect에서 "여는" 이벤트 핸들러(`openModal`)로 이동.
+  - CI: `eslint -f json` 결과를 `scripts/eslint-annotate.mjs`가 파일별 `::error` 주석으로 출력, 오류가 있으면 실패.
+- **재발 방지:** lint를 CI 필수 단계로 유지. `eslint-disable`로 덮지 않음.
