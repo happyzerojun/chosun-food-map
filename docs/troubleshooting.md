@@ -6,12 +6,12 @@
 |---|---|---|---|---|
 | TS-01 | 2026-10-14 | 조회수 | 날짜를 UTC로 잘라 KST 오전 9시에 하루가 바뀜, RPC 실패에도 잠금이 걸림 | 해결 (서버 측 중복 판정은 남은 일) |
 | TS-02 | 2026-10-14 | 보안 | 리뷰 삭제 비밀번호가 숫자 4자리 → 무차별 대입으로 남의 리뷰 삭제 가능 | 해결 (기존 리뷰는 남은 일) |
-| TS-03 | 2026-10-14 | 동시성 | "하루 1회" 리뷰 제한이 조회 후 저장 2단계 → 동시 요청 두 건 통과 | 해결 (SQL 마이그레이션 실행 필요) |
-| TS-04 | 2026-10-14 | 개인정보 | IP 해시 pepper가 선택 사항 → pepper 없으면 IP 복원 가능 | 경고 명확화 (Vercel 환경변수 설정 필요) |
+| TS-03 | 2026-10-14 | 동시성 | "하루 1회" 리뷰 제한이 조회 후 저장 2단계 → 동시 요청 두 건 통과 | 해결 (2026-11-09 운영 DB 적용) |
+| TS-04 | 2026-10-14 | 개인정보 | IP 해시 pepper가 선택 사항 → pepper 없으면 IP 복원 가능 | 해결 (2026-11-09 Vercel 환경변수 설정 확인) |
 | TS-05 | 2026-10-14 | 빌드 | CI에서 `npm ci` 실패: lock 파일이 package.json과 어긋남 | 임시 대응 |
 | TS-06 | 2026-10-16 | 보안 | 리뷰 API CORS가 `*` → 아무 사이트에서나 방문자 브라우저로 호출 | 해결 |
 | TS-07 | 2026-10-16 | 보안 | `X-Forwarded-For` 첫 값을 IP로 신뢰 → 헤더 위조로 하루 1회 제한 우회 | 해결 |
-| TS-08 | 2026-10-16 | 보안 | Supabase RLS 미적용 → 공개 anon 키로 `password_hash` 조회·데이터 수정 가능 | 해결 (SQL 마이그레이션 실행 필요) |
+| TS-08 | 2026-10-16 | 보안 | Supabase RLS 미적용 → 공개 anon 키로 `password_hash` 조회·데이터 수정 가능 | 해결 (2026-11-09 운영 DB 적용) |
 | TS-09 | 2026-10-16 | 빌드/React | CI lint 실패: effect 안 동기 setState (react-hooks v7), 실패 원인이 PR에 안 보임 | 해결 |
 
 ---
@@ -35,6 +35,7 @@
 - **원인:** 애플리케이션에서 조회 → 저장 2단계로 판단.
 - **해결:** `supabase/migration-2026-10-14-review-daily-unique.sql` — KST 날짜 컬럼(`review_date`)을 트리거로 채우고 `(hashed_ip, restaurant_id, review_date)` 유니크 인덱스 추가. API는 위반(`23505`)을 429로 변환.
 - **적용 방법:** Supabase SQL Editor에서 마이그레이션을 한 번 실행해야 해요.
+- **운영 적용(2026-11-09):** 사전 중복 확인 쿼리 결과 0행 → 마이그레이션 실행 → `pg_indexes`에서 `uq_reviews_ip_restaurant_day` 1행 확인.
 - **마이그레이션 전에도 안 깨지는 이유:** API는 `review_date`를 읽거나 쓰지 않고(트리거가 채움), 인덱스가 없으면 `23505`가 안 날 뿐 기존 "조회 후 저장" 검사로 동작해요. 대신 그 사이에는 동시 요청을 못 막아요.
 - **추가 수정(2026-10-16):** 마이그레이션을 `begin/commit`으로 묶어 기존 중복 행 때문에 인덱스 생성이 실패하면 컬럼·트리거도 함께 롤백되게 했어요. 사전 중복 확인 쿼리가 아직 없는 `review_date`를 참조하던 것도 `created_at`의 KST 날짜로 바꿨어요.
 
@@ -42,7 +43,7 @@
 - **위험:** `REVIEW_IP_PEPPER`가 없으면 SHA-256(IP)만 저장돼, IPv4 전체를 미리 해시해 대조하면 IP를 복원할 수 있어요.
 - **조치:** 환경변수가 없으면 서버 로그에 경고를 남겨요. 운영 환경(Vercel)에 pepper가 설정돼 있는지 확인이 필요해요.
 - **추가 수정(2026-10-16):** pepper가 없어도 리뷰 작성은 막지 않아요(설정 누락으로 운영이 멈추는 것보다 경고가 낫다고 판단). 대신 경고 문구에 위험·조치·부작용을 모두 적고, `VERCEL_ENV=production`에서는 `console.error`로 남겨요.
-- **할 일:** Vercel → Settings → Environment Variables에 `REVIEW_IP_PEPPER`(32바이트 이상 랜덤, `.env.example`에 생성 명령)를 Production·Preview에 추가하고 재배포.
+- **운영 적용(2026-11-09):** Vercel 환경변수에 `REVIEW_IP_PEPPER`가 설정된 것을 확인했어요. 설정 방법은 Vercel → Settings → Environment Variables에 32바이트 이상 랜덤 값(`.env.example`에 생성 명령)을 Production·Preview에 추가하고 재배포.
 - **주의:** pepper를 추가·변경하면 같은 IP의 해시가 바뀌어, 그날의 하루 1회 제한이 한 번 초기화돼요. pepper는 한 번 정하면 바꾸지 않아요.
 
 ### TS-05 CI에서 `npm ci` 실패
@@ -75,7 +76,12 @@
   - `reviews`: RLS + 공개 컬럼만 **컬럼 단위 GRANT** → `password_hash`·`hashed_ip`는 anon이 못 읽음.
   - `increment_visit_count`가 SECURITY INVOKER면 SECURITY DEFINER + `search_path` 고정으로 변경. anon의 UPDATE 권한을 회수하면 조회수 RPC가 막히기 때문이에요.
 - **확인한 것:** 서버리스 API·`uploadData.js`는 service role(RLS 우회)이라 영향 없음. 로컬 PostgreSQL 16에 Supabase 역할(anon/authenticated/service_role)을 흉내 낸 스키마로 적용해, anon 읽기(뷰, 공개 컬럼)·RPC 성공, 민감 컬럼·쓰기 차단, service role 쓰기 성공, `restaurants_with_stats` 뷰가 security_invoker여도 동작함을 확인했어요.
-- **남은 일:** `restaurants`·뷰·RPC 정의가 저장소에 없어 운영 DB와 다를 수 있어요. 파일 상단 "0단계" 쿼리로 먼저 확인하고 실행하세요. 조회수 RPC는 여전히 공개 키로 직접 부를 수 있어요(TS-01 남은 일).
+- **운영 적용(2026-11-09):**
+  - 0단계 확인: `restaurants`·`reviews` 모두 RLS가 이미 켜져 있었고, `increment_visit_count`는 이미 SECURITY DEFINER, 뷰는 `reviews`의 `id`·`rating`·`restaurant_id`만 사용(공개 컬럼).
+  - RLS가 켜져 있어도 SELECT 정책이 있으면 anon이 모든 컬럼을 읽을 수 있어, 컬럼 단위 GRANT를 적용하려고 마이그레이션을 실행했어요.
+  - 실행 후 anon 역할로 확인: 뷰 조회 성공, `password_hash`·`hashed_ip` 조회와 `restaurants` UPDATE는 `permission denied`.
+  - 예전에 만든 읽기 전용 SELECT 정책 2개가 새 정책과 함께 남아 있어요. 정책은 OR로 합쳐지고 둘 다 읽기라 동작은 같아요.
+- **남은 일:** 조회수 RPC는 여전히 공개 키로 직접 부를 수 있어요(TS-01 남은 일).
 
 ### TS-09 CI lint 실패: effect 안 동기 setState
 - **증상:** CI에 `npm run lint`를 넣자 실패했는데 PR 화면에 원인이 표시되지 않음.

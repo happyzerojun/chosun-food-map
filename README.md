@@ -88,7 +88,7 @@ if ((count ?? 0) >= 1) return json(res, 429, { error: '같은 식당에는 하�
 ### 2. 비밀번호 입력 없이 "내 리뷰만" 삭제하기
 **문제** — 익명 게시판처럼 삭제용 비밀번호를 직접 입력하게 하면 작성 단계가 늘어나고, 사용자가 비밀번호를 잊어버립니다.
 
-**해결** — 작성 시 브라우저가 `crypto.randomUUID()`로 삭제 키(128비트 랜덤, 예전 4자리 숫자에서 변경 — [TS-02](docs/troubleshooting.md))를 자동 생성해 서버로 보내고, 서버는 **bcrypt 해시만 저장**합니다. 원본은 작성자 기기의 localStorage에만 남겨, 같은 기기에서는 "삭제" 버튼 하나로 지울 수 있습니다. 서버는 삭제 요청마다 해시를 비교해 권한을 확인합니다.
+**해결** — 작성 시 브라우저가 `crypto.randomUUID()`로 삭제 키(UUID v4, 무작위 122비트, 예전 4자리 숫자에서 변경 — [TS-02](docs/troubleshooting.md))를 자동 생성해 서버로 보내고, 서버는 **bcrypt 해시만 저장**합니다. 원본은 작성자 기기의 localStorage에만 남겨, 같은 기기에서는 "삭제" 버튼 하나로 지울 수 있습니다. 서버는 삭제 요청마다 해시를 비교해 권한을 확인합니다.
 리뷰 조회 API는 `password_hash` 컬럼을 select 대상에서 제외해 응답에 섞여 나가지 않게 했습니다.
 
 ### 3. 실제 쿼리에 맞춘 인덱스 설계
@@ -150,13 +150,13 @@ npm run dev            # http://localhost:3000
 
 리뷰 API까지 로컬에서 확인하려면 [Vercel CLI](https://vercel.com/docs/cli)로 `vercel dev`를 실행하거나, `.env`의 `VITE_API_ORIGIN`에 API 서버 주소를 지정합니다.
 
-## ✅ 운영 반영 할 일 (PR #1 머지 전후)
+## ✅ 운영 반영 체크리스트
 
-Supabase SQL과 Vercel 환경변수는 저장소 밖이라 직접 적용해야 합니다. 코드는 아래 항목이 적용되기 전에도 깨지지 않게 만들었습니다.
+Supabase SQL과 Vercel 환경변수는 저장소 밖이라 직접 적용해야 합니다. 코드는 아래 항목이 적용되기 전에도 깨지지 않게 만들었습니다. 2026-11-09에 운영 환경 적용을 확인했습니다.
 
-- [ ] **Vercel 환경변수 `REVIEW_IP_PEPPER` 설정** (Production·Preview, 32바이트 이상 랜덤 — 생성 명령은 `.env.example`). 없어도 동작하지만 서버 로그에 보안 경고가 남고 IP 해시가 복원 가능합니다. 한 번 정하면 바꾸지 않습니다(바꾸면 그날 하루 1회 제한이 초기화). → [TS-04](docs/troubleshooting.md)
-- [ ] **Supabase SQL ① `supabase/migration-2026-10-14-review-daily-unique.sql`** — 파일 안의 중복 확인 쿼리를 먼저 실행. 적용 전에는 동시 요청 두 건이 함께 통과할 수 있습니다(나머지 동작은 같음). → [TS-03](docs/troubleshooting.md)
-- [ ] **Supabase SQL ② `supabase/migration-2026-10-16-rls-anon-read-only.sql`** — 파일 상단 "0단계" 확인 쿼리 → 본문 실행 → 하단 "확인" 쿼리. 적용 후 사이트에서 식당 목록·별점이 보이고 식당 클릭 시 콘솔에 "조회수 업데이트 실패"가 없는지 확인. → [TS-08](docs/troubleshooting.md)
+- [x] **Vercel 환경변수 `REVIEW_IP_PEPPER` 설정** (2026-11-09 설정 확인) (Production·Preview, 32바이트 이상 랜덤 — 생성 명령은 `.env.example`). 없어도 동작하지만 서버 로그에 보안 경고가 남고 IP 해시가 복원 가능합니다. 한 번 정하면 바꾸지 않습니다(바꾸면 그날 하루 1회 제한이 초기화). → [TS-04](docs/troubleshooting.md)
+- [x] **Supabase SQL ① `supabase/migration-2026-10-14-review-daily-unique.sql`** (2026-11-09 적용: 중복 0건 확인 후 실행, `uq_reviews_ip_restaurant_day` 인덱스 생성 확인) — 파일 안의 중복 확인 쿼리를 먼저 실행. 적용 전에는 동시 요청 두 건이 함께 통과할 수 있습니다(나머지 동작은 같음). → [TS-03](docs/troubleshooting.md)
+- [x] **Supabase SQL ② `supabase/migration-2026-10-16-rls-anon-read-only.sql`** (2026-11-09 적용: anon 역할로 뷰 조회 성공, `password_hash`·`hashed_ip` 조회와 쓰기는 `permission denied` 확인) — 파일 상단 "0단계" 확인 쿼리 → 본문 실행 → 하단 "확인" 쿼리. 적용 후 사이트에서 식당 목록·별점이 보이고 식당 클릭 시 콘솔에 "조회수 업데이트 실패"가 없는지 확인. → [TS-08](docs/troubleshooting.md)
 - [ ] 커스텀 도메인을 붙이고 다른 출처에서 API를 부를 때만 `ALLOWED_ORIGIN` 설정. 같은 출처면 필요 없습니다. → [TS-06](docs/troubleshooting.md)
 
 ## 🔭 회고와 다음 단계
